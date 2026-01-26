@@ -38,8 +38,6 @@ export default function ScheduleScreen() {
   const sessionTypes = [
     { key: 'keynote', label: 'Keynote' },
     { key: 'panel', label: 'Panel' },
-    { key: 'workshop', label: 'Workshop' },
-    { key: 'breakout', label: 'Breakout' },
     { key: 'networking', label: 'Network' },
   ];
 
@@ -257,9 +255,7 @@ function getTypeColor(type: string): string {
   const typeColors: Record<string, string> = {
     keynote: colors.primary,
     panel: colors.secondary,
-    workshop: colors.accent,
     networking: '#10B981',
-    breakout: '#8B5CF6',
   };
   return typeColors[type] || colors.textSecondary;
 }

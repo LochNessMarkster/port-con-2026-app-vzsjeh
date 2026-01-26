@@ -24,7 +24,7 @@ export interface Session {
   end_time: string;
   room_id: string;
   room?: Room;
-  type: 'keynote' | 'panel' | 'workshop' | 'networking' | 'breakout';
+  type: 'keynote' | 'panel' | 'networking';
   track: string;
   speakers: Speaker[];
   isBookmarked?: boolean;
