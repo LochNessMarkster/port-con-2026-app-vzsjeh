@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,13 +27,20 @@ export default function HomeScreen() {
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     .slice(0, 3);
 
-  // Get featured sponsor (highest tier - platinum)
-  const featuredSponsor = sponsors
-    .filter(s => s.tier === 'platinum')
-    .sort((a, b) => a.display_order - b.display_order)[0];
+  // Get random featured sponsor from platinum tier
+  const featuredSponsor = useMemo(() => {
+    const platinumSponsors = sponsors.filter(s => s.tier === 'platinum');
+    if (platinumSponsors.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * platinumSponsors.length);
+    return platinumSponsors[randomIndex];
+  }, [sponsors]);
 
-  // Get featured exhibitor (first one)
-  const featuredExhibitor = exhibitors[0];
+  // Get random featured exhibitor
+  const featuredExhibitor = useMemo(() => {
+    if (exhibitors.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * exhibitors.length);
+    return exhibitors[randomIndex];
+  }, [exhibitors]);
 
   const navButtons = [
     { title: 'Schedule', icon: 'calendar-today', route: '/(tabs)/schedule', color: colors.primary },
