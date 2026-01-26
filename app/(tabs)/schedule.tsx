@@ -35,7 +35,13 @@ export default function ScheduleScreen() {
     return matchesSearch && matchesType;
   });
 
-  const sessionTypes = ['keynote', 'panel', 'workshop', 'networking', 'breakout'];
+  const sessionTypes = [
+    { key: 'keynote', label: 'Keynote' },
+    { key: 'panel', label: 'Panel' },
+    { key: 'workshop', label: 'Workshop' },
+    { key: 'breakout', label: 'Breakout' },
+    { key: 'networking', label: 'Network' },
+  ];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -46,7 +52,20 @@ export default function ScheduleScreen() {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const minutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-    return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0 && mins > 0) {
+      const hoursText = `${hours}h`;
+      const minsText = `${mins}m`;
+      return `${hoursText} ${minsText}`;
+    }
+    if (hours > 0) {
+      const hoursText = `${hours}h`;
+      return hoursText;
+    }
+    const minsText = `${minutes}m`;
+    return minsText;
   };
 
   return (
@@ -79,7 +98,10 @@ export default function ScheduleScreen() {
           onPress={() => setSelectedDay('day1')}
         >
           <Text style={[styles.dayTabText, selectedDay === 'day1' && styles.dayTabTextActive]}>
-            Day 1 - March 24
+            Day 1
+          </Text>
+          <Text style={[styles.dayTabSubtext, selectedDay === 'day1' && styles.dayTabSubtextActive]}>
+            March 24
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -87,7 +109,10 @@ export default function ScheduleScreen() {
           onPress={() => setSelectedDay('day2')}
         >
           <Text style={[styles.dayTabText, selectedDay === 'day2' && styles.dayTabTextActive]}>
-            Day 2 - March 25
+            Day 2
+          </Text>
+          <Text style={[styles.dayTabSubtext, selectedDay === 'day2' && styles.dayTabSubtextActive]}>
+            March 25
           </Text>
         </TouchableOpacity>
       </View>
@@ -107,18 +132,21 @@ export default function ScheduleScreen() {
             All
           </Text>
         </TouchableOpacity>
-        {sessionTypes.map((type, index) => (
-          <React.Fragment key={index}>
-            <TouchableOpacity
-              style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
-              onPress={() => setSelectedType(type)}
-            >
-              <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          </React.Fragment>
-        ))}
+        {sessionTypes.map((type, index) => {
+          const isActive = selectedType === type.key;
+          return (
+            <React.Fragment key={index}>
+              <TouchableOpacity
+                style={[styles.filterChip, isActive && styles.filterChipActive]}
+                onPress={() => setSelectedType(type.key)}
+              >
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
       </ScrollView>
 
       {/* Sessions List */}
@@ -127,66 +155,85 @@ export default function ScheduleScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredSessions.map((session, index) => (
-          <React.Fragment key={index}>
-            <View style={styles.sessionCard}>
-              <View style={styles.sessionHeader}>
-                <View style={styles.sessionTimeContainer}>
-                  <Text style={styles.sessionTime}>
-                    {formatTime(session.start_time)} - {formatTime(session.end_time)}
-                  </Text>
-                  <Text style={styles.sessionDuration}>{getDuration(session.start_time, session.end_time)}</Text>
+        {filteredSessions.map((session, index) => {
+          const bookmarked = isBookmarked(session.id);
+          const typeColor = getTypeColor(session.type);
+          const startTime = formatTime(session.start_time);
+          const endTime = formatTime(session.end_time);
+          const duration = getDuration(session.start_time, session.end_time);
+          const speakerNames = session.speakers.map(s => s.name).join(', ');
+          const roomName = session.room?.name || '';
+          const trackName = session.track;
+          
+          return (
+            <React.Fragment key={index}>
+              <View style={styles.sessionCard}>
+                <View style={styles.sessionHeader}>
+                  <View style={styles.sessionTimeContainer}>
+                    <Text style={styles.sessionTime}>
+                      {startTime}
+                    </Text>
+                    <Text style={styles.sessionTimeSeparator}>-</Text>
+                    <Text style={styles.sessionTime}>
+                      {endTime}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => toggleBookmark(session.id)}
+                    style={styles.bookmarkButton}
+                  >
+                    <IconSymbol
+                      ios_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
+                      android_material_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
+                      size={24}
+                      color={bookmarked ? colors.primary : colors.textSecondary}
+                    />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={() => toggleBookmark(session.id)}
-                  style={styles.bookmarkButton}
-                >
-                  <IconSymbol
-                    ios_icon_name={isBookmarked(session.id) ? 'favorite' : 'favorite-border'}
-                    android_material_icon_name={isBookmarked(session.id) ? 'favorite' : 'favorite-border'}
-                    size={24}
-                    color={isBookmarked(session.id) ? colors.primary : colors.textSecondary}
-                  />
-                </TouchableOpacity>
+
+                <View style={styles.sessionMeta}>
+                  <View style={[styles.typeBadge, { backgroundColor: typeColor }]}>
+                    <Text style={styles.typeBadgeText}>{session.type}</Text>
+                  </View>
+                  <Text style={styles.sessionDuration}>{duration}</Text>
+                </View>
+
+                <Text style={styles.sessionTitle}>{session.title}</Text>
+
+                {session.speakers.length > 0 && (
+                  <View style={styles.speakersContainer}>
+                    <IconSymbol
+                      ios_icon_name="person"
+                      android_material_icon_name="person"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.speakersText}>
+                      {speakerNames}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.sessionFooter}>
+                  <View style={styles.roomContainer}>
+                    <IconSymbol
+                      ios_icon_name="location"
+                      android_material_icon_name="place"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.roomText}>{roomName}</Text>
+                  </View>
+                  {trackName && (
+                    <View style={styles.trackBadge}>
+                      <Text style={styles.trackText}>{trackName}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-
-              <View style={[styles.typeBadge, { backgroundColor: getTypeColor(session.type) }]}>
-                <Text style={styles.typeBadgeText}>{session.type}</Text>
-              </View>
-
-              <Text style={styles.sessionTitle}>{session.title}</Text>
-
-              {session.speakers.length > 0 && (
-                <View style={styles.speakersContainer}>
-                  <IconSymbol
-                    ios_icon_name="person"
-                    android_material_icon_name="person"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={styles.speakersText}>
-                    {session.speakers.map(s => s.name).join(', ')}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.sessionFooter}>
-                <View style={styles.roomContainer}>
-                  <IconSymbol
-                    ios_icon_name="location"
-                    android_material_icon_name="place"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={styles.roomText}>{session.room?.name}</Text>
-                </View>
-                <View style={styles.trackBadge}>
-                  <Text style={styles.trackText}>{session.track}</Text>
-                </View>
-              </View>
-            </View>
-          </React.Fragment>
-        ))}
+            </React.Fragment>
+          );
+        })}
 
         {filteredSessions.length === 0 && (
           <View style={styles.emptyState}>
@@ -260,7 +307,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
@@ -271,12 +318,22 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   dayTabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
   },
   dayTabTextActive: {
     color: '#FFFFFF',
+  },
+  dayTabSubtext: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  dayTabSubtextActive: {
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   filterScroll: {
     marginBottom: 16,
@@ -322,38 +379,48 @@ const styles = StyleSheet.create({
   sessionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 12,
   },
   sessionTimeContainer: {
-    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   sessionTime: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
-  sessionDuration: {
-    fontSize: 14,
-    fontWeight: '500',
+  sessionTimeSeparator: {
+    fontSize: 16,
+    fontWeight: '400',
     color: colors.textSecondary,
-    marginTop: 2,
   },
   bookmarkButton: {
     padding: 4,
+  },
+  sessionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
   },
   typeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
   },
   typeBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
     textTransform: 'capitalize',
+  },
+  sessionDuration: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   sessionTitle: {
     fontSize: 18,
@@ -378,6 +445,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   roomContainer: {
     flexDirection: 'row',
