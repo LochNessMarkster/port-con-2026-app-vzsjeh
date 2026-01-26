@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,12 +20,20 @@ import { Session } from '@/types/conference';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { sessions, speakers, exhibitors, loading } = useConferenceData();
+  const { sessions, speakers, exhibitors, sponsors, loading } = useConferenceData();
 
   const upcomingSessions = sessions
     .filter(s => new Date(s.start_time) > new Date())
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     .slice(0, 3);
+
+  // Get featured sponsor (highest tier - platinum)
+  const featuredSponsor = sponsors
+    .filter(s => s.tier === 'platinum')
+    .sort((a, b) => a.display_order - b.display_order)[0];
+
+  // Get featured exhibitor (first one)
+  const featuredExhibitor = exhibitors[0];
 
   const navButtons = [
     { title: 'Schedule', icon: 'calendar-today', route: '/(tabs)/schedule', color: colors.primary },
@@ -43,6 +52,13 @@ export default function HomeScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const openWebsite = (url: string | undefined) => {
+    if (url) {
+      console.log('Opening website:', url);
+      Linking.openURL(url);
+    }
   };
 
   return (
@@ -128,6 +144,89 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Featured Sponsor */}
+        {featuredSponsor && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Featured Sponsor</Text>
+            <TouchableOpacity
+              style={styles.featuredCard}
+              onPress={() => openWebsite(featuredSponsor.website)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.featuredHeader}>
+                <Image
+                  source={{ uri: featuredSponsor.logo }}
+                  style={styles.featuredLogo}
+                  resizeMode="contain"
+                />
+                <View style={[styles.tierBadge, { backgroundColor: getTierColor(featuredSponsor.tier) }]}>
+                  <Text style={styles.tierBadgeText}>{featuredSponsor.tier.toUpperCase()}</Text>
+                </View>
+              </View>
+              <Text style={styles.featuredName}>{featuredSponsor.name}</Text>
+              <Text style={styles.featuredDescription}>{featuredSponsor.description}</Text>
+              {featuredSponsor.website && (
+                <View style={styles.featuredFooter}>
+                  <IconSymbol
+                    ios_icon_name="link"
+                    android_material_icon_name="link"
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.featuredWebsite}>Visit Website</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Featured Exhibitor */}
+        {featuredExhibitor && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Featured Exhibitor</Text>
+            <TouchableOpacity
+              style={styles.featuredCard}
+              onPress={() => openWebsite(featuredExhibitor.website)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.featuredHeader}>
+                <Image
+                  source={{ uri: featuredExhibitor.logo }}
+                  style={styles.featuredLogo}
+                  resizeMode="contain"
+                />
+                <View style={[styles.categoryBadge, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.categoryBadgeText}>{featuredExhibitor.category}</Text>
+                </View>
+              </View>
+              <Text style={styles.featuredName}>{featuredExhibitor.name}</Text>
+              <Text style={styles.featuredDescription}>{featuredExhibitor.description}</Text>
+              <View style={styles.exhibitorDetails}>
+                <View style={styles.exhibitorDetailItem}>
+                  <IconSymbol
+                    ios_icon_name="location"
+                    android_material_icon_name="place"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.exhibitorDetailText}>Booth {featuredExhibitor.booth_number}</Text>
+                </View>
+                {featuredExhibitor.website && (
+                  <View style={styles.featuredFooter}>
+                    <IconSymbol
+                      ios_icon_name="link"
+                      android_material_icon_name="link"
+                      size={16}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.featuredWebsite}>Visit Website</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Upcoming Sessions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
@@ -191,6 +290,16 @@ function getTypeColor(type: string): string {
     breakout: '#8B5CF6',
   };
   return typeColors[type] || colors.textSecondary;
+}
+
+function getTierColor(tier: string): string {
+  const tierColors: Record<string, string> = {
+    platinum: '#E5E7EB',
+    gold: '#FCD34D',
+    silver: '#D1D5DB',
+    bronze: '#CD7F32',
+  };
+  return tierColors[tier] || colors.textSecondary;
 }
 
 const styles = StyleSheet.create({
@@ -301,6 +410,83 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  featuredCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  featuredHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  featuredLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  tierBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  tierBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  categoryBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  featuredName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  featuredDescription: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  featuredFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  featuredWebsite: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  exhibitorDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  exhibitorDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exhibitorDetailText: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
