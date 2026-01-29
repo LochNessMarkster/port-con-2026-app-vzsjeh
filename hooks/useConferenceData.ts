@@ -64,11 +64,12 @@ export function useConferenceData() {
       console.log('Sponsors:', sponsorsData.length);
       console.log('Rooms:', roomsData.length);
       
-      setSessions(sessionsData);
-      setSpeakers(speakersData);
-      setExhibitors(exhibitorsData);
-      setSponsors(sponsorsData);
-      setRooms(roomsData);
+      // If API returns empty data, use mock data as fallback
+      setSessions(sessionsData.length > 0 ? sessionsData : getMockSessions());
+      setSpeakers(speakersData.length > 0 ? speakersData : getMockSpeakers());
+      setExhibitors(exhibitorsData.length > 0 ? exhibitorsData : getMockExhibitors());
+      setSponsors(sponsorsData.length > 0 ? sponsorsData : getMockSponsors());
+      setRooms(roomsData.length > 0 ? roomsData : getMockRooms());
       
       setLoading(false);
     } catch (err) {
