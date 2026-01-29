@@ -1,12 +1,97 @@
-/**
- * Define your database schema here using Drizzle ORM
- *
- * Example:
- * import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
- *
- * export const users = pgTable('users', {
- *   id: uuid('id').primaryKey().defaultRandom(),
- *   name: text('name').notNull(),
- *   createdAt: timestamp('created_at').notNull().defaultNow(),
- * });
- */
+import { pgTable, uuid, text, timestamp, integer, varchar } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+// Rooms table
+export const rooms = pgTable('rooms', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  location: text('location').notNull(),
+  capacity: integer('capacity').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Speakers table
+export const speakers = pgTable('speakers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  airtableId: text('airtable_id'),
+  name: text('name').notNull(),
+  title: text('title'),
+  company: text('company'),
+  bio: text('bio'),
+  photo: text('photo'),
+  linkedinUrl: text('linkedin_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Sessions table
+export const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  startTime: timestamp('start_time').notNull(),
+  endTime: timestamp('end_time').notNull(),
+  roomId: uuid('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+  type: varchar('type', { length: 50 }),
+  track: varchar('track', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Junction table for sessions and speakers (many-to-many)
+export const sessionSpeakers = pgTable('session_speakers', {
+  sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  speakerId: uuid('speaker_id').notNull().references(() => speakers.id, { onDelete: 'cascade' }),
+});
+
+// Exhibitors table
+export const exhibitors = pgTable('exhibitors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  logo: text('logo'),
+  boothNumber: varchar('booth_number', { length: 50 }),
+  category: varchar('category', { length: 100 }),
+  website: text('website'),
+  mapX: integer('map_x'),
+  mapY: integer('map_y'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Sponsors table
+export const sponsors = pgTable('sponsors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  tier: varchar('tier', { length: 50 }).notNull(),
+  logo: text('logo'),
+  website: text('website'),
+  displayOrder: integer('display_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Relations
+export const roomsRelations = relations(rooms, ({ many }) => ({
+  sessions: many(sessions),
+}));
+
+export const speakersRelations = relations(speakers, ({ many }) => ({
+  sessions: many(sessionSpeakers),
+}));
+
+export const sessionsRelations = relations(sessions, ({ many, one }) => ({
+  speakers: many(sessionSpeakers),
+  room: one(rooms, {
+    fields: [sessions.roomId],
+    references: [rooms.id],
+  }),
+}));
+
+export const sessionSpeakersRelations = relations(sessionSpeakers, ({ one }) => ({
+  session: one(sessions, {
+    fields: [sessionSpeakers.sessionId],
+    references: [sessions.id],
+  }),
+  speaker: one(speakers, {
+    fields: [sessionSpeakers.speakerId],
+    references: [speakers.id],
+  }),
+}));
