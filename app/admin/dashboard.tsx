@@ -18,6 +18,36 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 function DashboardContent() {
   const router = useRouter();
   const { signOut, user } = useAuth();
+  const [syncing, setSyncing] = React.useState(false);
+  const [syncMessage, setSyncMessage] = React.useState('');
+
+  const handleSyncAirtable = async () => {
+    try {
+      setSyncing(true);
+      setSyncMessage('Syncing data from Airtable...');
+      console.log('[Admin] Starting Airtable sync...');
+      
+      const { authenticatedPost } = await import('@/utils/api');
+      const response = await authenticatedPost<{ 
+        message: string; 
+        speakersCreated?: number; 
+        speakersUpdated?: number; 
+      }>('/api/admin/sync-airtable', {});
+      
+      const details = response.speakersCreated || response.speakersUpdated 
+        ? ` (Created: ${response.speakersCreated || 0}, Updated: ${response.speakersUpdated || 0})`
+        : '';
+      setSyncMessage(response.message + details || 'Sync completed successfully!');
+      console.log('[Admin] Airtable sync completed:', response);
+      
+    } catch (error) {
+      console.error('[Admin] Error syncing Airtable:', error);
+      setSyncMessage(`Error: ${error instanceof Error ? error.message : 'Failed to sync data'}`);
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMessage(''), 8000);
+    }
+  };
 
   const adminSections = [
     {
@@ -102,6 +132,50 @@ function DashboardContent() {
           <Text style={styles.welcomeSubtext}>
             Manage all aspects of the conference from this dashboard
           </Text>
+        </View>
+
+        {/* Airtable Sync Section */}
+        <View style={styles.syncCard}>
+          <View style={styles.syncHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.syncTitle}>Airtable Integration</Text>
+              <Text style={styles.syncDescription}>
+                Sync speakers and sessions from Airtable database
+              </Text>
+              <TouchableOpacity
+                style={styles.infoLink}
+                onPress={() => router.push('/admin/airtable-info' as any)}
+              >
+                <IconSymbol
+                  ios_icon_name="info"
+                  android_material_icon_name="info"
+                  size={14}
+                  color={colors.primary}
+                />
+                <Text style={styles.infoLinkText}>Learn more about Airtable integration</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.syncButton, syncing && styles.syncButtonDisabled]}
+              onPress={handleSyncAirtable}
+              disabled={syncing}
+            >
+              <IconSymbol
+                ios_icon_name="arrow.triangle.2.circlepath"
+                android_material_icon_name="sync"
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.syncButtonText}>
+                {syncing ? 'Syncing...' : 'Sync Now'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {syncMessage ? (
+            <View style={styles.syncMessageContainer}>
+              <Text style={styles.syncMessage}>{syncMessage}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.grid}>
@@ -209,7 +283,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 24,
-    marginBottom: 32,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -223,6 +297,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     color: colors.textSecondary,
+  },
+  syncCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  syncHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  syncTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  syncDescription: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: colors.textSecondary,
+  },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
+  },
+  syncButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  syncMessageContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  syncMessage: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  infoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  infoLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.primary,
   },
   grid: {
     flexDirection: 'row',

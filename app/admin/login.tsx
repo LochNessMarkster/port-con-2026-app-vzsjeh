@@ -25,12 +25,13 @@ export default function AdminLoginScreen() {
   const handleLogin = async () => {
     try {
       setError('');
-      // TODO: Backend Integration - Call authentication API
+      console.log('[Admin] Attempting login...');
       await signInWithEmail(email, password);
+      console.log('[Admin] Login successful, redirecting to dashboard');
       router.replace('/admin/dashboard' as any);
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Invalid email or password');
+      console.error('[Admin] Login error:', err);
+      setError(err instanceof Error ? err.message : 'Invalid email or password');
     }
   };
 

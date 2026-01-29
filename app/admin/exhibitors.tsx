@@ -1,11 +1,144 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { IconSymbol } from '@/components/IconSymbol';
+import { Exhibitor } from '@/types/conference';
+import { apiGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 function ExhibitorsManagementContent() {
+  const router = useRouter();
+  const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingExhibitor, setEditingExhibitor] = useState<Exhibitor | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ visible: boolean; exhibitor: Exhibitor | null }>({
+    visible: false,
+    exhibitor: null,
+  });
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    logo: '',
+    boothNumber: '',
+    category: '',
+    website: '',
+    mapX: '',
+    mapY: '',
+  });
+
+  useEffect(() => {
+    fetchExhibitors();
+  }, []);
+
+  const fetchExhibitors = async () => {
+    try {
+      setLoading(true);
+      console.log('[Admin] Fetching exhibitors...');
+      const data = await apiGet<Exhibitor[]>('/api/exhibitors');
+      setExhibitors(data);
+      console.log('[Admin] Fetched', data.length, 'exhibitors');
+    } catch (error) {
+      console.error('[Admin] Error fetching exhibitors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingExhibitor(null);
+    setFormData({
+      name: '',
+      description: '',
+      logo: '',
+      boothNumber: '',
+      category: '',
+      website: '',
+      mapX: '',
+      mapY: '',
+    });
+    setIsEditing(true);
+  };
+
+  const handleEdit = (exhibitor: Exhibitor) => {
+    setEditingExhibitor(exhibitor);
+    setFormData({
+      name: exhibitor.name,
+      description: exhibitor.description,
+      logo: exhibitor.logo,
+      boothNumber: exhibitor.booth_number,
+      category: exhibitor.category,
+      website: exhibitor.website || '',
+      mapX: exhibitor.map_x?.toString() || '',
+      mapY: exhibitor.map_y?.toString() || '',
+    });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      console.log('[Admin] Saving exhibitor...');
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        logo: formData.logo,
+        boothNumber: formData.boothNumber,
+        category: formData.category,
+        website: formData.website || undefined,
+        mapX: formData.mapX ? parseInt(formData.mapX, 10) : undefined,
+        mapY: formData.mapY ? parseInt(formData.mapY, 10) : undefined,
+      };
+
+      if (editingExhibitor) {
+        await authenticatedPut(`/api/admin/exhibitors/${editingExhibitor.id}`, payload);
+        console.log('[Admin] Exhibitor updated');
+      } else {
+        await authenticatedPost('/api/admin/exhibitors', payload);
+        console.log('[Admin] Exhibitor created');
+      }
+
+      setIsEditing(false);
+      fetchExhibitors();
+    } catch (error) {
+      console.error('[Admin] Error saving exhibitor:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save exhibitor');
+    }
+  };
+
+  const handleDelete = async (exhibitor: Exhibitor) => {
+    setDeleteModal({ visible: true, exhibitor });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.exhibitor) return;
+
+    try {
+      console.log('[Admin] Deleting exhibitor:', deleteModal.exhibitor.id);
+      await authenticatedDelete(`/api/admin/exhibitors/${deleteModal.exhibitor.id}`);
+      console.log('[Admin] Exhibitor deleted');
+      setDeleteModal({ visible: false, exhibitor: null });
+      fetchExhibitors();
+    } catch (error) {
+      console.error('[Admin] Error deleting exhibitor:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete exhibitor');
+    }
+  };
+
   if (Platform.OS !== 'web') {
     return (
       <SafeAreaView style={styles.container}>
@@ -16,14 +149,236 @@ function ExhibitorsManagementContent() {
     );
   }
 
+  if (isEditing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setIsEditing(false)}
+          >
+            <IconSymbol
+              ios_icon_name="arrow-back"
+              android_material_icon_name="arrow-back"
+              size={20}
+              color={colors.text}
+            />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {editingExhibitor ? 'Edit Exhibitor' : 'Add Exhibitor'}
+          </Text>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.formContent}>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Name *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.name}
+              onChangeText={(text) => setFormData({ ...formData, name: text })}
+              placeholder="Exhibitor name"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              placeholder="Exhibitor description"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Logo URL</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.logo}
+              onChangeText={(text) => setFormData({ ...formData, logo: text })}
+              placeholder="https://example.com/logo.jpg"
+              placeholderTextColor={colors.textSecondary}
+            />
+            {formData.logo && (
+              <Image source={{ uri: formData.logo }} style={styles.logoPreview} />
+            )}
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Booth Number</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.boothNumber}
+                onChangeText={(text) => setFormData({ ...formData, boothNumber: text })}
+                placeholder="e.g., A101"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Category</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.category}
+                onChangeText={(text) => setFormData({ ...formData, category: text })}
+                placeholder="e.g., Technology"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Website</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.website}
+              onChangeText={(text) => setFormData({ ...formData, website: text })}
+              placeholder="https://example.com"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Map X Coordinate</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.mapX}
+                onChangeText={(text) => setFormData({ ...formData, mapX: text })}
+                placeholder="e.g., 100"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Map Y Coordinate</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.mapY}
+                onChangeText={(text) => setFormData({ ...formData, mapY: text })}
+                placeholder="e.g., 150"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.center}>
-        <Text style={styles.title}>Exhibitors Management</Text>
-        <Text style={styles.text}>
-          TODO: Backend Integration - Similar to Sponsors management with fields for booth_number, category, map coordinates
-        </Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <IconSymbol
+            ios_icon_name="arrow-back"
+            android_material_icon_name="arrow-back"
+            size={20}
+            color={colors.text}
+          />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Manage Exhibitors</Text>
+        <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+          <IconSymbol
+            ios_icon_name="add"
+            android_material_icon_name="add"
+            size={20}
+            color="#FFFFFF"
+          />
+          <Text style={styles.addButtonText}>Add Exhibitor</Text>
+        </TouchableOpacity>
       </View>
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.tableContainer}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, { flex: 2 }]}>Exhibitor</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Booth</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Category</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Actions</Text>
+            </View>
+
+            {exhibitors.map((exhibitor) => (
+              <View key={exhibitor.id} style={styles.tableRow}>
+                <View style={[styles.tableCell, { flex: 2 }]}>
+                  <Image source={{ uri: exhibitor.logo }} style={styles.exhibitorLogo} />
+                  <View>
+                    <Text style={styles.exhibitorName}>{exhibitor.name}</Text>
+                    <Text style={styles.exhibitorDescription} numberOfLines={1}>
+                      {exhibitor.description}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.tableCell, { flex: 1 }]}>
+                  <Text style={styles.tableCellText}>{exhibitor.booth_number}</Text>
+                </View>
+                <View style={[styles.tableCell, { flex: 1 }]}>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{exhibitor.category}</Text>
+                  </View>
+                </View>
+                <View style={[styles.tableCell, { flex: 1 }]}>
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleEdit(exhibitor)}
+                    >
+                      <IconSymbol
+                        ios_icon_name="edit"
+                        android_material_icon_name="edit"
+                        size={18}
+                        color={colors.secondary}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleDelete(exhibitor)}
+                    >
+                      <IconSymbol
+                        ios_icon_name="delete"
+                        android_material_icon_name="delete"
+                        size={18}
+                        color="#DC2626"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
+      <ConfirmModal
+        visible={deleteModal.visible}
+        title="Delete Exhibitor"
+        message={`Are you sure you want to delete ${deleteModal.exhibitor?.name}? This action cannot be undone.`}
+        type="error"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteModal({ visible: false, exhibitor: null })}
+      />
     </SafeAreaView>
   );
 }
@@ -41,23 +396,190 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 16,
   },
   text: {
     fontSize: 16,
     fontWeight: '400',
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
+  },
+  formContent: {
+    padding: 24,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  logoPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginTop: 12,
+    backgroundColor: colors.border,
+  },
+  tableContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableHeaderText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableCell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tableCellText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  exhibitorLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  exhibitorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  exhibitorDescription: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  categoryBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: colors.highlight,
+  },
+  categoryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: colors.background,
   },
 });

@@ -21,7 +21,7 @@ import Constants from "expo-constants";
 
 // Backend URL is automatically configured in app.json under expo.extra.backendUrl
 const API_URL = Constants.expoConfig?.extra?.backendUrl || "";
-const BEARER_TOKEN_KEY = "your-app_bearer_token"; // TODO: Replace "your-app" with actual app name
+const BEARER_TOKEN_KEY = "portcon_bearer_token";
 
 // Platform-specific storage adapter
 const storage = Platform.OS === "web"
@@ -37,8 +37,8 @@ export const authClient = createAuthClient({
   baseURL: API_URL,
   plugins: [
     expoClient({
-      scheme: "your-app-scheme", // TODO: Replace with actual scheme
-      storagePrefix: "your-app", // TODO: Replace with actual app prefix
+      scheme: "PortCon 2026",
+      storagePrefix: "portcon",
       storage,
     }),
   ],

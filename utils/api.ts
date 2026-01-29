@@ -31,9 +31,8 @@ export const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || "";
 
 /**
  * Bearer token storage key
- * TODO: Replace "your-app" with actual app name to match auth-client.ts
  */
-const BEARER_TOKEN_KEY = "your-app_bearer_token";
+const BEARER_TOKEN_KEY = "portcon_bearer_token";
 
 /**
  * Check if backend is properly configured

@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Session, Speaker, Exhibitor, Sponsor, Room } from '@/types/conference';
+import { apiGet, isBackendConfigured } from '@/utils/api';
 
-// TODO: Backend Integration - Replace mock data with API calls
 export function useConferenceData() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -19,31 +19,73 @@ export function useConferenceData() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // TODO: Backend Integration - Fetch data from API endpoints
-      // const [sessionsRes, speakersRes, exhibitorsRes, sponsorsRes, roomsRes] = await Promise.all([
-      //   fetch('/api/sessions'),
-      //   fetch('/api/speakers'),
-      //   fetch('/api/exhibitors'),
-      //   fetch('/api/sponsors'),
-      //   fetch('/api/rooms'),
-      // ]);
+      console.log('Fetching conference data from API...');
       
-      // Mock data for now
-      setSessions(getMockSessions());
-      setSpeakers(getMockSpeakers());
-      setExhibitors(getMockExhibitors());
-      setSponsors(getMockSponsors());
-      setRooms(getMockRooms());
+      // Check if backend is configured
+      if (!isBackendConfigured()) {
+        console.log('Backend not configured, using mock data');
+        setSessions(getMockSessions());
+        setSpeakers(getMockSpeakers());
+        setExhibitors(getMockExhibitors());
+        setSponsors(getMockSponsors());
+        setRooms(getMockRooms());
+        setLoading(false);
+        return;
+      }
+
+      // Fetch data from API endpoints
+      const [sessionsData, speakersData, exhibitorsData, sponsorsData, roomsData] = await Promise.all([
+        apiGet<Session[]>('/api/sessions').catch(err => {
+          console.error('Error fetching sessions:', err);
+          return getMockSessions();
+        }),
+        apiGet<Speaker[]>('/api/speakers').catch(err => {
+          console.error('Error fetching speakers:', err);
+          return getMockSpeakers();
+        }),
+        apiGet<Exhibitor[]>('/api/exhibitors').catch(err => {
+          console.error('Error fetching exhibitors:', err);
+          return getMockExhibitors();
+        }),
+        apiGet<Sponsor[]>('/api/sponsors').catch(err => {
+          console.error('Error fetching sponsors:', err);
+          return getMockSponsors();
+        }),
+        apiGet<Room[]>('/api/rooms').catch(err => {
+          console.error('Error fetching rooms:', err);
+          return getMockRooms();
+        }),
+      ]);
+
+      console.log('Conference data fetched successfully');
+      console.log('Sessions:', sessionsData.length);
+      console.log('Speakers:', speakersData.length);
+      console.log('Exhibitors:', exhibitorsData.length);
+      console.log('Sponsors:', sponsorsData.length);
+      console.log('Rooms:', roomsData.length);
+      
+      setSessions(sessionsData);
+      setSpeakers(speakersData);
+      setExhibitors(exhibitorsData);
+      setSponsors(sponsorsData);
+      setRooms(roomsData);
       
       setLoading(false);
     } catch (err) {
       console.error('Error fetching conference data:', err);
       setError('Failed to load conference data');
+      // Fallback to mock data on error
+      setSessions(getMockSessions());
+      setSpeakers(getMockSpeakers());
+      setExhibitors(getMockExhibitors());
+      setSponsors(getMockSponsors());
+      setRooms(getMockRooms());
       setLoading(false);
     }
   };
 
   const refetch = () => {
+    console.log('Refetching conference data...');
     fetchData();
   };
 

@@ -19,12 +19,29 @@ import { useConferenceData } from '@/hooks/useConferenceData';
 export default function SpeakerDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { speakers, sessions } = useConferenceData();
+  const { speakers, sessions, loading } = useConferenceData();
 
   const speaker = speakers.find(s => s.id === id);
   const speakerSessions = sessions.filter(s => 
     s.speakers.some(sp => sp.id === id)
   );
+
+  // Also try to fetch individual speaker if not found in list
+  React.useEffect(() => {
+    if (!loading && !speaker && id) {
+      console.log('[Speaker Detail] Speaker not found in list, fetching from API...');
+      // Could fetch individual speaker here if needed
+      // const fetchSpeaker = async () => {
+      //   try {
+      //     const data = await apiGet(`/api/speakers/${id}`);
+      //     // Handle individual speaker data
+      //   } catch (error) {
+      //     console.error('Error fetching speaker:', error);
+      //   }
+      // };
+      // fetchSpeaker();
+    }
+  }, [loading, speaker, id]);
 
   if (!speaker) {
     return (

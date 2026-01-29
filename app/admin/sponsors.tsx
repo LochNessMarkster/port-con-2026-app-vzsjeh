@@ -16,26 +16,103 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useConferenceData } from '@/hooks/useConferenceData';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 function SponsorsManagementContent() {
   const router = useRouter();
   const { sponsors, refetch } = useConferenceData();
-  const [isAdding, setIsAdding] = useState(false);
 
-  // TODO: Backend Integration - Implement CRUD operations
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingSponsor, setEditingSponsor] = useState<any>(null);
+  const [deleteModal, setDeleteModal] = useState<{ visible: boolean; sponsor: any | null }>({
+    visible: false,
+    sponsor: null,
+  });
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    tier: 'gold' as 'platinum' | 'gold' | 'silver' | 'bronze',
+    logo: '',
+    website: '',
+    displayOrder: '',
+  });
+
   const handleAdd = () => {
-    console.log('Add sponsor');
-    setIsAdding(true);
+    console.log('[Admin] Add sponsor');
+    setEditingSponsor(null);
+    setFormData({
+      name: '',
+      description: '',
+      tier: 'gold',
+      logo: '',
+      website: '',
+      displayOrder: '',
+    });
+    setIsEditing(true);
   };
 
-  const handleEdit = (id: string) => {
-    console.log('Edit sponsor:', id);
-    // TODO: Backend Integration - Open edit modal/form
+  const handleEdit = (sponsor: any) => {
+    console.log('[Admin] Edit sponsor:', sponsor.id);
+    setEditingSponsor(sponsor);
+    setFormData({
+      name: sponsor.name,
+      description: sponsor.description,
+      tier: sponsor.tier,
+      logo: sponsor.logo,
+      website: sponsor.website || '',
+      displayOrder: sponsor.display_order.toString(),
+    });
+    setIsEditing(true);
   };
 
-  const handleDelete = (id: string) => {
-    console.log('Delete sponsor:', id);
-    // TODO: Backend Integration - Call DELETE /api/sponsors/:id
+  const handleSave = async () => {
+    try {
+      console.log('[Admin] Saving sponsor...');
+      const { authenticatedPost, authenticatedPut } = await import('@/utils/api');
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        tier: formData.tier,
+        logo: formData.logo,
+        website: formData.website || undefined,
+        displayOrder: parseInt(formData.displayOrder, 10),
+      };
+
+      if (editingSponsor) {
+        await authenticatedPut(`/api/admin/sponsors/${editingSponsor.id}`, payload);
+        console.log('[Admin] Sponsor updated');
+      } else {
+        await authenticatedPost('/api/admin/sponsors', payload);
+        console.log('[Admin] Sponsor created');
+      }
+
+      setIsEditing(false);
+      refetch();
+    } catch (error) {
+      console.error('[Admin] Error saving sponsor:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save sponsor');
+    }
+  };
+
+  const handleDelete = (sponsor: any) => {
+    console.log('[Admin] Delete sponsor:', sponsor.id);
+    setDeleteModal({ visible: true, sponsor });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.sponsor) return;
+
+    try {
+      console.log('[Admin] Deleting sponsor:', deleteModal.sponsor.id);
+      const { authenticatedDelete } = await import('@/utils/api');
+      await authenticatedDelete(`/api/admin/sponsors/${deleteModal.sponsor.id}`);
+      console.log('[Admin] Sponsor deleted');
+      setDeleteModal({ visible: false, sponsor: null });
+      refetch();
+    } catch (error) {
+      console.error('[Admin] Error deleting sponsor:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete sponsor');
+    }
   };
 
   if (Platform.OS !== 'web') {
@@ -46,6 +123,122 @@ function SponsorsManagementContent() {
             Admin panel is only available on web
           </Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setIsEditing(false)}
+          >
+            <IconSymbol
+              ios_icon_name="arrow-back"
+              android_material_icon_name="arrow-back"
+              size={20}
+              color={colors.text}
+            />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {editingSponsor ? 'Edit Sponsor' : 'Add Sponsor'}
+          </Text>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.formContent}>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Name *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.name}
+              onChangeText={(text) => setFormData({ ...formData, name: text })}
+              placeholder="Sponsor name"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              placeholder="Sponsor description"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Tier *</Text>
+            <View style={styles.tierOptions}>
+              {['platinum', 'gold', 'silver', 'bronze'].map((tier) => (
+                <TouchableOpacity
+                  key={tier}
+                  style={[
+                    styles.tierOption,
+                    formData.tier === tier && styles.tierOptionActive,
+                    { backgroundColor: getTierColor(tier) },
+                  ]}
+                  onPress={() => setFormData({ ...formData, tier: tier as any })}
+                >
+                  <Text
+                    style={[
+                      styles.tierOptionText,
+                      formData.tier === tier && styles.tierOptionTextActive,
+                    ]}
+                  >
+                    {tier.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Logo URL</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.logo}
+              onChangeText={(text) => setFormData({ ...formData, logo: text })}
+              placeholder="https://example.com/logo.jpg"
+              placeholderTextColor={colors.textSecondary}
+            />
+            {formData.logo && (
+              <Image source={{ uri: formData.logo }} style={styles.logoPreview} />
+            )}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Website</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.website}
+              onChangeText={(text) => setFormData({ ...formData, website: text })}
+              placeholder="https://example.com"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Display Order</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.displayOrder}
+              onChangeText={(text) => setFormData({ ...formData, displayOrder: text })}
+              placeholder="e.g., 1"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="numeric"
+            />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -110,7 +303,7 @@ function SponsorsManagementContent() {
                   <View style={styles.actions}>
                     <TouchableOpacity
                       style={styles.actionButton}
-                      onPress={() => handleEdit(sponsor.id)}
+                      onPress={() => handleEdit(sponsor)}
                     >
                       <IconSymbol
                         ios_icon_name="edit"
@@ -121,13 +314,13 @@ function SponsorsManagementContent() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.actionButton}
-                      onPress={() => handleDelete(sponsor.id)}
+                      onPress={() => handleDelete(sponsor)}
                     >
                       <IconSymbol
                         ios_icon_name="delete"
                         android_material_icon_name="delete"
                         size={18}
-                        color={colors.error}
+                        color="#DC2626"
                       />
                     </TouchableOpacity>
                   </View>
@@ -137,19 +330,18 @@ function SponsorsManagementContent() {
           ))}
         </View>
 
-        <View style={styles.infoBox}>
-          <IconSymbol
-            ios_icon_name="info"
-            android_material_icon_name="info"
-            size={20}
-            color={colors.secondary}
-          />
-          <Text style={styles.infoText}>
-            TODO: Backend Integration - CRUD operations will be connected to the backend API. 
-            Features include: Add/Edit/Delete sponsors, image upload, CSV import, and drag-to-reorder.
-          </Text>
-        </View>
       </ScrollView>
+
+      <ConfirmModal
+        visible={deleteModal.visible}
+        title="Delete Sponsor"
+        message={`Are you sure you want to delete ${deleteModal.sponsor?.name}? This action cannot be undone.`}
+        type="error"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteModal({ visible: false, sponsor: null })}
+      />
     </SafeAreaView>
   );
 }
@@ -302,22 +494,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.background,
   },
-  infoBox: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#1E40AF',
-    lineHeight: 20,
-  },
   mobileWarning: {
     flex: 1,
     alignItems: 'center',
@@ -329,5 +505,77 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  formContent: {
+    padding: 24,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  tierOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  tierOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    opacity: 0.6,
+  },
+  tierOptionActive: {
+    opacity: 1,
+    borderWidth: 3,
+    borderColor: colors.text,
+  },
+  tierOptionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  tierOptionTextActive: {
+    fontSize: 16,
+  },
+  logoPreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginTop: 12,
+    backgroundColor: colors.border,
   },
 });
