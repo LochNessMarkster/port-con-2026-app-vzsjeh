@@ -80,7 +80,8 @@ export function registerAdminRoutes(app: App) {
             company: fields.Company || null,
             bio: fields.Bio || null,
             photo: fields.Photo?.[0]?.url || null,
-            linkedinUrl: fields.LinkedIn || null,
+            speakingTopic: fields['Speaking Topic'] || fields.SpeakingTopic || null,
+            synopsis: fields.Synopsis || fields['Synopsis of Speaking Topic'] || null,
           };
 
           if (existingSpeaker) {
@@ -132,7 +133,8 @@ export function registerAdminRoutes(app: App) {
             company: { type: 'string' },
             bio: { type: 'string' },
             photo: { type: 'string' },
-            linkedinUrl: { type: 'string' },
+            speakingTopic: { type: 'string' },
+            synopsis: { type: 'string' },
           },
           required: ['name'],
         },
@@ -159,7 +161,8 @@ export function registerAdminRoutes(app: App) {
             company: body.company || null,
             bio: body.bio || null,
             photo: body.photo || null,
-            linkedinUrl: body.linkedinUrl || null,
+            speakingTopic: body.speakingTopic || null,
+            synopsis: body.synopsis || null,
           })
           .returning();
 
@@ -194,7 +197,8 @@ export function registerAdminRoutes(app: App) {
             company: { type: 'string' },
             bio: { type: 'string' },
             photo: { type: 'string' },
-            linkedinUrl: { type: 'string' },
+            speakingTopic: { type: 'string' },
+            synopsis: { type: 'string' },
           },
         },
         response: {

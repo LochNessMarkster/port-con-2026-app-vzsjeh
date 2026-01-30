@@ -19,7 +19,8 @@ export const speakers = pgTable('speakers', {
   company: text('company'),
   bio: text('bio'),
   photo: text('photo'),
-  linkedinUrl: text('linkedin_url'),
+  speakingTopic: text('speaking_topic'),
+  synopsis: text('synopsis'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

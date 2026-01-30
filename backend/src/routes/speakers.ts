@@ -28,7 +28,8 @@ export function register(app: App, fastify: FastifyInstance) {
                 company: { type: 'string' },
                 bio: { type: 'string' },
                 photo: { type: 'string' },
-                linkedinUrl: { type: 'string' },
+                speakingTopic: { type: 'string' },
+                synopsis: { type: 'string' },
               },
             },
           },
@@ -72,7 +73,8 @@ export function register(app: App, fastify: FastifyInstance) {
               company: { type: 'string' },
               bio: { type: 'string' },
               photo: { type: 'string' },
-              linkedinUrl: { type: 'string' },
+              speakingTopic: { type: 'string' },
+              synopsis: { type: 'string' },
               sessions: { type: 'array' },
             },
           },
@@ -134,7 +136,8 @@ export function register(app: App, fastify: FastifyInstance) {
                 company: { type: ['string', 'null'] },
                 bio: { type: ['string', 'null'] },
                 photo: { type: ['string', 'null'] },
-                linkedinUrl: { type: ['string', 'null'] },
+                speakingTopic: { type: ['string', 'null'] },
+                synopsis: { type: ['string', 'null'] },
               },
             },
           },
@@ -220,11 +223,16 @@ export function register(app: App, fastify: FastifyInstance) {
             fields.Headshot?.[0]?.url ||
             null;
 
-          const linkedinUrl =
-            fields.LinkedIn ||
-            fields.linkedin ||
-            fields['LinkedIn URL'] ||
-            fields.LinkedInURL ||
+          const speakingTopic =
+            fields['Speaking Topic'] ||
+            fields.SpeakingTopic ||
+            fields['speaking_topic'] ||
+            null;
+
+          const synopsis =
+            fields.Synopsis ||
+            fields['Synopsis of Speaking Topic'] ||
+            fields.synopsis ||
             null;
 
           return {
@@ -234,7 +242,8 @@ export function register(app: App, fastify: FastifyInstance) {
             company,
             bio,
             photo: photoUrl,
-            linkedinUrl,
+            speakingTopic,
+            synopsis,
           };
         });
 
