@@ -29,6 +29,10 @@ https://te37stbznck3c3cff9eh662st246xndt.app.specular.dev
 ### 3. Public Endpoints (Working)
 - ✅ GET /api/speakers - Integrated in `hooks/useConferenceData.ts`
 - ✅ GET /api/speakers/:id - Integrated in `app/(tabs)/speaker/[id].tsx`
+- ✅ GET /api/speakers/airtable - **NEW!** Integrated in `app/(tabs)/speakers.tsx`
+  - Fetches speakers directly from Airtable in real-time
+  - No authentication required
+  - Accessible via "Fetch from Airtable" button on Speakers page
 - ✅ GET /api/sessions - Integrated in `hooks/useConferenceData.ts`
 - ✅ GET /api/rooms - Integrated in `hooks/useConferenceData.ts`
 - ✅ GET /api/exhibitors - Integrated in `hooks/useConferenceData.ts`
@@ -36,8 +40,16 @@ https://te37stbznck3c3cff9eh662st246xndt.app.specular.dev
 
 ### 4. Admin Endpoints (Protected)
 
-#### Airtable Sync
+#### Airtable Integration
 - ✅ POST /api/admin/sync-airtable - Integrated in `app/admin/dashboard.tsx`
+  - Syncs speakers from Airtable to the app's database
+  - Uses table ID: tblxn3Yie523MallN
+  - Maps Airtable fields to speaker schema
+  - Returns count of created/updated speakers
+- ✅ GET /api/speakers/airtable - Integrated in `app/(tabs)/speakers.tsx`
+  - Public endpoint (no auth required)
+  - Fetches speakers directly from Airtable
+  - Allows users to see latest data without admin sync
 
 #### Speakers CRUD
 - ✅ POST /api/admin/speakers - Create speaker
@@ -119,6 +131,21 @@ scheme: "PortCon 2026"
 storagePrefix: "portcon"
 ```
 
+### Airtable Configuration (Backend)
+```
+Base ID: appkKjciinTlnsbkd
+Table ID: tblxn3Yie523MallN
+Authorization Token: Configured in backend environment variable
+```
+
+**Field Mapping:**
+- Airtable "Name" → Speaker "name"
+- Airtable "Title" → Speaker "title"
+- Airtable "Company" → Speaker "company"
+- Airtable "Bio" → Speaker "bio"
+- Airtable "Photo" (attachment) → Speaker "photo" (first attachment URL)
+- Airtable "LinkedIn" → Speaker "linkedinUrl"
+
 ## 🧪 Testing
 
 ### Test Credentials
@@ -171,12 +198,27 @@ Three comprehensive guides have been created:
 - `TESTING_GUIDE.md` - Testing instructions
 - `INTEGRATION_SUMMARY.md` - This summary
 
-### Modified
+### Modified (Latest Update)
+- `app/(tabs)/speakers.tsx` - **NEW!** Added "Fetch from Airtable" button
+  - Integrates GET /api/speakers/airtable endpoint
+  - Shows loading state and success/error messages
+  - Allows real-time data fetching without admin access
+- `app/admin/dashboard.tsx` - Updated Airtable sync section
+  - Added configuration details (Base ID, Table ID)
+  - Clarified sync vs. direct fetch functionality
+- `app/admin/airtable-info.tsx` - Updated documentation
+  - Added information about new public endpoint
+  - Explained two ways to access Airtable data
+  - Updated field mapping documentation
+- `hooks/useConferenceData.ts` - Exposed setter functions
+  - Added setSpeakers, setSessions, etc. to return value
+  - Allows components to update data directly
+
+### Previously Modified
 - `lib/auth.ts` - Updated app name and scheme
 - `utils/api.ts` - Updated bearer token key
 - `contexts/AuthContext.tsx` - Updated redirect URLs
 - `app/_layout.tsx` - Added AuthProvider wrapper
-- `app/admin/dashboard.tsx` - Integrated Airtable sync
 - `app/admin/login.tsx` - Improved error handling
 - `app/admin/speakers.tsx` - Full CRUD implementation
 - `app/admin/sessions.tsx` - Full CRUD implementation
@@ -189,6 +231,7 @@ Three comprehensive guides have been created:
 
 ### Public App
 - Browse speakers with search
+- **NEW!** Fetch latest speakers directly from Airtable
 - View session schedule with filters
 - Explore exhibitors by category
 - View sponsors by tier
@@ -197,7 +240,10 @@ Three comprehensive guides have been created:
 
 ### Admin Panel (Web Only)
 - Secure authentication
-- Airtable data sync
+- **NEW!** Airtable data sync to database
+  - Syncs speakers from Airtable table tblxn3Yie523MallN
+  - Shows count of created/updated records
+  - Permanent storage in app database
 - Full CRUD for all entities
 - Form validation
 - Confirmation modals
@@ -223,9 +269,90 @@ For issues:
 3. Test authentication (check bearer token)
 4. Review error messages in UI
 
+## 🆕 Latest Update: Airtable Direct Fetch Integration
+
+### What Changed (January 30, 2026)
+The backend team updated the Airtable integration to use the correct table and added a new public endpoint for direct data fetching.
+
+### Backend Changes
+1. **Updated `/api/admin/sync-airtable`**
+   - Now uses correct table ID: `tblxn3Yie523MallN` (instead of view ID)
+   - Properly maps Airtable fields to speaker schema
+   - Returns count of created/updated speakers
+
+2. **New Public Endpoint: `/api/speakers/airtable`**
+   - Fetches speakers directly from Airtable in real-time
+   - No authentication required
+   - Returns array of speakers with same schema as `/api/speakers`
+
+### Frontend Integration
+1. **Speakers Page (`app/(tabs)/speakers.tsx`)**
+   - Added "Fetch from Airtable" button in header
+   - Shows loading state while fetching
+   - Displays success/error messages
+   - Updates speaker list with fresh Airtable data
+   - No admin access required
+
+2. **Admin Dashboard (`app/admin/dashboard.tsx`)**
+   - Updated sync section with configuration details
+   - Shows Base ID and Table ID
+   - Clarified difference between sync and direct fetch
+   - Renamed button to "Sync to Database" for clarity
+
+3. **Airtable Info Page (`app/admin/airtable-info.tsx`)**
+   - Updated documentation with new endpoint info
+   - Explained two ways to access Airtable data
+   - Updated field mapping documentation
+   - Added troubleshooting tips
+
+4. **Conference Data Hook (`hooks/useConferenceData.ts`)**
+   - Exposed setter functions (setSpeakers, etc.)
+   - Allows components to update data directly
+   - Maintains backward compatibility
+
+### How It Works
+
+#### For End Users (No Admin Access)
+1. Navigate to Speakers page
+2. Click "Fetch from Airtable" button
+3. See latest speakers from Airtable immediately
+4. Data is displayed but not saved to database
+
+#### For Admins
+1. Navigate to Admin Dashboard
+2. Click "Sync to Database" button
+3. Speakers are fetched from Airtable and saved to database
+4. All users see the synced data on next app load
+
+### Benefits
+- ✅ Users can see latest Airtable data without admin access
+- ✅ Useful for testing and previewing changes
+- ✅ No need to wait for admin sync
+- ✅ Real-time data access
+- ✅ Fallback if database sync fails
+
+### Testing
+1. **Test Direct Fetch:**
+   ```
+   1. Go to Speakers page
+   2. Click "Fetch from Airtable"
+   3. Verify speakers load from Airtable
+   4. Check console for API call logs
+   ```
+
+2. **Test Admin Sync:**
+   ```
+   1. Login to Admin Dashboard
+   2. Click "Sync to Database"
+   3. Verify success message with counts
+   4. Check Speakers management page
+   ```
+
 ## 🏁 Conclusion
 
 The backend integration is **complete and production-ready**. All endpoints are connected, authentication is working, and the admin panel provides full CRUD functionality for managing conference data.
+
+**Latest Enhancement:** Users can now fetch speakers directly from Airtable without admin access, providing real-time data access and a better user experience.
 
 The app follows best practices:
 - Centralized API layer
@@ -233,5 +360,6 @@ The app follows best practices:
 - Web compatibility
 - Session persistence
 - User-friendly UI
+- Real-time data access
 
 Ready to deploy! 🚀

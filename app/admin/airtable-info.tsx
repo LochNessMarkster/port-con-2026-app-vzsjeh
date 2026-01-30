@@ -24,15 +24,19 @@ function AirtableInfoContent() {
     },
     {
       title: 'Airtable Configuration',
-      content: 'Base ID: appkKjciinTlnsbkd\nSpeakers View: shrDhhVoXnWHC0oWj\n\nThese IDs are pre-configured in the backend and connect to your Port of the Future Conference 2026 Airtable base.',
+      content: 'Base ID: appkKjciinTlnsbkd\nTable ID: tblxn3Yie523MallN\n\nThese IDs are pre-configured in the backend and connect to your Port of the Future Conference 2026 Airtable base.',
     },
     {
-      title: 'How to Sync Data',
-      content: '1. Navigate to the Admin Dashboard\n2. Click the "Sync Now" button in the Airtable Integration section\n3. Wait for the sync to complete\n4. Check the success message to confirm data was synced\n5. View updated data in the app',
+      title: 'Two Ways to Access Airtable Data',
+      content: '1. Admin Sync (Database): Use the "Sync to Database" button in the Admin Dashboard to permanently store speakers in the app\'s database. This is recommended for production use.\n\n2. Direct Fetch (Real-time): Users can click "Fetch from Airtable" on the Speakers page to see the latest data directly from Airtable without admin access. This is useful for testing and seeing immediate updates.',
+    },
+    {
+      title: 'How to Sync Data to Database',
+      content: '1. Navigate to the Admin Dashboard\n2. Click the "Sync to Database" button in the Airtable Integration section\n3. Wait for the sync to complete\n4. Check the success message to confirm data was synced\n5. View updated data in the app',
     },
     {
       title: 'What Data Gets Synced?',
-      content: '• Speakers: Names, titles, companies, bios, photos, LinkedIn profiles\n• Sessions: Titles, descriptions, times, rooms, types, tracks\n• Session-Speaker Relationships: Which speakers are presenting in which sessions',
+      content: '• Speakers: Names, titles, companies, bios, photos, LinkedIn profiles\n• Field Mapping:\n  - Name → name\n  - Title → title\n  - Company → company\n  - Bio → bio\n  - Photo (attachment) → photo (first attachment URL)\n  - LinkedIn → linkedinUrl',
     },
     {
       title: 'Sync Frequency',
@@ -40,7 +44,7 @@ function AirtableInfoContent() {
     },
     {
       title: 'Troubleshooting',
-      content: 'If sync fails:\n• Check that your Airtable API key is configured correctly\n• Verify the Base ID and View ID are correct\n• Ensure your Airtable fields match the expected format\n• Check the backend logs for detailed error messages\n• Contact support if issues persist',
+      content: 'If sync fails:\n• Check that your Airtable API key is configured correctly in the backend\n• Verify the Base ID and Table ID are correct\n• Ensure your Airtable fields match the expected format (Name, Title, Company, Bio, Photo, LinkedIn)\n• Check the backend logs for detailed error messages\n• Try using the "Fetch from Airtable" button on the Speakers page to test the connection\n• Contact support if issues persist',
     },
   ];
 

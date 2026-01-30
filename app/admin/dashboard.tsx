@@ -140,8 +140,15 @@ function DashboardContent() {
             <View style={{ flex: 1 }}>
               <Text style={styles.syncTitle}>Airtable Integration</Text>
               <Text style={styles.syncDescription}>
-                Sync speakers and sessions from Airtable database
+                Sync speakers from Airtable database to the app's database
               </Text>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoBoxText}>
+                  • Base ID: appkKjciinTlnsbkd{'\n'}
+                  • Table ID: tblxn3Yie523MallN{'\n'}
+                  • This syncs speakers to the database for permanent storage
+                </Text>
+              </View>
               <TouchableOpacity
                 style={styles.infoLink}
                 onPress={() => router.push('/admin/airtable-info' as any)}
@@ -167,7 +174,7 @@ function DashboardContent() {
                 color="#fff"
               />
               <Text style={styles.syncButtonText}>
-                {syncing ? 'Syncing...' : 'Sync Now'}
+                {syncing ? 'Syncing...' : 'Sync to Database'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -349,6 +356,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: colors.text,
+  },
+  infoBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoBoxText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   infoLink: {
     flexDirection: 'row',

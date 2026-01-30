@@ -21,6 +21,14 @@ Then press `w` to open in web browser (recommended for admin features).
    - **Exhibitors** - See exhibitor booths and categories
    - **Sponsors** - View sponsors by tier (Platinum, Gold, Silver, Bronze)
 
+#### Fetch Speakers from Airtable (NEW!)
+1. Go to **Speakers** tab
+2. Click "Fetch from Airtable" button in the header
+3. Wait for loading indicator
+4. Should see success message with count
+5. Speakers list updates with fresh Airtable data
+6. **Note:** This fetches data directly from Airtable without admin access
+
 #### View Speaker Details
 1. Go to **Speakers** tab
 2. Click on any speaker
@@ -56,12 +64,35 @@ Since this is a new deployment, create an account:
 2. Complete OAuth flow
 3. You'll be redirected to the dashboard
 
-#### Test Airtable Sync
-1. On the dashboard, find the "Airtable Integration" card
-2. Click "Sync Now" button
-3. Watch for sync progress message
-4. Check console for detailed sync results
-5. Verify data appears in the app
+#### Test Airtable Integration
+
+**Option 1: Direct Fetch (Public - No Admin Required)**
+1. Go to Speakers page in the public app
+2. Click "Fetch from Airtable" button
+3. Wait for loading indicator
+4. Should see success message: "✓ Loaded X speakers from Airtable"
+5. Speakers list updates immediately
+6. Check console logs for API call details
+7. **Note:** Data is displayed but NOT saved to database
+
+**Option 2: Sync to Database (Admin Only)**
+1. Login to Admin Dashboard
+2. Find the "Airtable Integration" card
+3. Note the configuration details:
+   - Base ID: appkKjciinTlnsbkd
+   - Table ID: tblxn3Yie523MallN
+4. Click "Sync to Database" button
+5. Watch for sync progress message
+6. Should see: "Sync completed successfully! (Created: X, Updated: Y)"
+7. Check console for detailed sync results
+8. Verify data appears in Speakers management page
+9. **Note:** Data is permanently saved to database
+
+**Verify Airtable Configuration:**
+1. Click "Learn more about Airtable integration" link
+2. Review the Airtable Info page
+3. Check field mapping documentation
+4. Verify Base ID and Table ID match your Airtable setup
 
 #### Test Speakers Management
 
@@ -219,6 +250,7 @@ Since this is a new deployment, create an account:
 
 ### Public Features
 - ✅ All data loads from backend
+- ✅ **NEW!** Fetch speakers directly from Airtable
 - ✅ Search and filters work
 - ✅ Speaker details show correctly
 - ✅ Sessions display with speakers and rooms
@@ -232,7 +264,8 @@ Since this is a new deployment, create an account:
 - ✅ Confirmation modals appear before delete
 - ✅ Forms validate required fields
 - ✅ Data persists after refresh
-- ✅ Airtable sync works (if configured)
+- ✅ **NEW!** Airtable sync to database works (if configured)
+- ✅ **NEW!** Airtable direct fetch works (no auth required)
 
 ### Error Handling
 - ✅ Network errors show user-friendly messages
@@ -260,6 +293,23 @@ Since this is a new deployment, create an account:
 - Refresh the page
 - Check console for API errors
 - Verify backend is running
+
+### Airtable Fetch/Sync Issues
+- **"Error fetching from Airtable"**
+  - Check backend logs for Airtable API errors
+  - Verify Airtable token is configured in backend environment
+  - Confirm Base ID and Table ID are correct
+  - Try the "Fetch from Airtable" button on Speakers page to test connection
+  
+- **"No speakers found in Airtable"**
+  - Verify the Airtable table has records
+  - Check that table ID is correct (tblxn3Yie523MallN)
+  - Ensure Airtable fields match expected names (Name, Title, Company, Bio, Photo, LinkedIn)
+  
+- **Sync vs. Direct Fetch Confusion**
+  - **Direct Fetch:** Public endpoint, no auth, data NOT saved to database
+  - **Sync to Database:** Admin only, requires auth, data saved permanently
+  - Use Direct Fetch for testing, Sync for production data
 
 ## Sample Test Data
 
@@ -310,15 +360,18 @@ Display Order: 2
 You've successfully tested the integration when:
 
 1. ✅ You can view all conference data in the public app
-2. ✅ You can login to the admin panel
-3. ✅ You can create, edit, and delete speakers
-4. ✅ You can create, edit, and delete sessions
-5. ✅ You can create, edit, and delete rooms
-6. ✅ You can create, edit, and delete exhibitors
-7. ✅ You can create, edit, and delete sponsors
-8. ✅ Changes in admin panel appear in the public app
-9. ✅ Data persists after browser refresh
-10. ✅ Error messages appear for invalid operations
+2. ✅ **NEW!** You can fetch speakers from Airtable without admin access
+3. ✅ You can login to the admin panel
+4. ✅ **NEW!** You can sync Airtable data to database from admin panel
+5. ✅ You can create, edit, and delete speakers
+6. ✅ You can create, edit, and delete sessions
+7. ✅ You can create, edit, and delete rooms
+8. ✅ You can create, edit, and delete exhibitors
+9. ✅ You can create, edit, and delete sponsors
+10. ✅ Changes in admin panel appear in the public app
+11. ✅ Data persists after browser refresh
+12. ✅ Error messages appear for invalid operations
+13. ✅ Airtable integration works (both direct fetch and sync)
 
 ## Next Steps
 

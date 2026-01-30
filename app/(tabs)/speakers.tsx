@@ -9,17 +9,22 @@ import {
   Image,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useConferenceData } from '@/hooks/useConferenceData';
+import { apiGet } from '@/utils/api';
+import { Speaker } from '@/types/conference';
 
 export default function SpeakersScreen() {
   const router = useRouter();
-  const { speakers, loading } = useConferenceData();
+  const { speakers, loading, setSpeakers } = useConferenceData();
   const [searchQuery, setSearchQuery] = useState('');
+  const [fetchingAirtable, setFetchingAirtable] = useState(false);
+  const [airtableMessage, setAirtableMessage] = useState('');
 
   const filteredSpeakers = speakers.filter(speaker =>
     speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -27,11 +32,63 @@ export default function SpeakersScreen() {
     speaker.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleFetchFromAirtable = async () => {
+    try {
+      setFetchingAirtable(true);
+      setAirtableMessage('Fetching latest speakers from Airtable...');
+      console.log('[Speakers] Fetching from Airtable...');
+      
+      const airtableSpeakers = await apiGet<Speaker[]>('/api/speakers/airtable');
+      
+      if (airtableSpeakers && airtableSpeakers.length > 0) {
+        setSpeakers(airtableSpeakers);
+        setAirtableMessage(`✓ Loaded ${airtableSpeakers.length} speakers from Airtable`);
+        console.log('[Speakers] Fetched', airtableSpeakers.length, 'speakers from Airtable');
+      } else {
+        setAirtableMessage('No speakers found in Airtable');
+      }
+    } catch (error) {
+      console.error('[Speakers] Error fetching from Airtable:', error);
+      setAirtableMessage(`Error: ${error instanceof Error ? error.message : 'Failed to fetch from Airtable'}`);
+    } finally {
+      setFetchingAirtable(false);
+      setTimeout(() => setAirtableMessage(''), 5000);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Speakers</Text>
-        <Text style={styles.headerSubtitle}>{speakers.length} industry experts</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Speakers</Text>
+            <Text style={styles.headerSubtitle}>{speakers.length} industry experts</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.airtableButton, fetchingAirtable && styles.airtableButtonDisabled]}
+            onPress={handleFetchFromAirtable}
+            disabled={fetchingAirtable}
+          >
+            {fetchingAirtable ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <IconSymbol
+                ios_icon_name="arrow.triangle.2.circlepath"
+                android_material_icon_name="sync"
+                size={16}
+                color="#fff"
+              />
+            )}
+            <Text style={styles.airtableButtonText}>
+              {fetchingAirtable ? 'Loading...' : 'Fetch from Airtable'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {airtableMessage ? (
+          <View style={styles.messageContainer}>
+            <Text style={styles.messageText}>{airtableMessage}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Search Bar */}
@@ -121,6 +178,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: '800',
@@ -131,6 +194,36 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  airtableButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  airtableButtonDisabled: {
+    opacity: 0.6,
+  },
+  airtableButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  messageContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  messageText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
   },
   searchContainer: {
     flexDirection: 'row',

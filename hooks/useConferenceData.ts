@@ -99,6 +99,11 @@ export function useConferenceData() {
     loading,
     error,
     refetch,
+    setSpeakers,
+    setSessions,
+    setExhibitors,
+    setSponsors,
+    setRooms,
   };
 }
 
