@@ -38,7 +38,8 @@ function SpeakersManagementContent() {
     company: '',
     bio: '',
     photo: '',
-    linkedinUrl: '',
+    speakingTopic: '',
+    synopsis: '',
   });
 
   useEffect(() => {
@@ -67,7 +68,8 @@ function SpeakersManagementContent() {
       company: '',
       bio: '',
       photo: '',
-      linkedinUrl: '',
+      speakingTopic: '',
+      synopsis: '',
     });
     setIsEditing(true);
   };
@@ -80,7 +82,8 @@ function SpeakersManagementContent() {
       company: speaker.company,
       bio: speaker.bio,
       photo: speaker.photo,
-      linkedinUrl: speaker.linkedin_url || '',
+      speakingTopic: speaker.speakingTopic || '',
+      synopsis: speaker.synopsis || '',
     });
     setIsEditing(true);
   };
@@ -94,7 +97,8 @@ function SpeakersManagementContent() {
         company: formData.company,
         bio: formData.bio,
         photo: formData.photo,
-        linkedinUrl: formData.linkedinUrl,
+        speakingTopic: formData.speakingTopic,
+        synopsis: formData.synopsis,
       };
 
       if (editingSpeaker) {
@@ -228,13 +232,26 @@ function SpeakersManagementContent() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>LinkedIn URL</Text>
+            <Text style={styles.label}>Speaking Topic</Text>
             <TextInput
               style={styles.input}
-              value={formData.linkedinUrl}
-              onChangeText={(text) => setFormData({ ...formData, linkedinUrl: text })}
-              placeholder="https://linkedin.com/in/..."
+              value={formData.speakingTopic}
+              onChangeText={(text) => setFormData({ ...formData, speakingTopic: text })}
+              placeholder="Topic of presentation"
               placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Synopsis of Speaking Topic</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={formData.synopsis}
+              onChangeText={(text) => setFormData({ ...formData, synopsis: text })}
+              placeholder="Brief description of the speaking topic"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={4}
             />
           </View>
         </ScrollView>
@@ -279,47 +296,55 @@ function SpeakersManagementContent() {
             <View style={styles.tableHeader}>
               <Text style={[styles.tableHeaderText, { flex: 2 }]}>Speaker</Text>
               <Text style={[styles.tableHeaderText, { flex: 2 }]}>Title & Company</Text>
+              <Text style={[styles.tableHeaderText, { flex: 2 }]}>Speaking Topic</Text>
               <Text style={[styles.tableHeaderText, { flex: 1 }]}>Actions</Text>
             </View>
 
-            {speakers.map((speaker) => (
-              <View key={speaker.id} style={styles.tableRow}>
-                <View style={[styles.tableCell, { flex: 2 }]}>
-                  <Image source={{ uri: speaker.photo }} style={styles.speakerPhoto} />
-                  <Text style={styles.speakerName}>{speaker.name}</Text>
-                </View>
-                <View style={[styles.tableCell, { flex: 2 }]}>
-                  <Text style={styles.tableCellText}>{speaker.title}</Text>
-                  <Text style={styles.tableCellSubtext}>{speaker.company}</Text>
-                </View>
-                <View style={[styles.tableCell, { flex: 1 }]}>
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEdit(speaker)}
-                    >
-                      <IconSymbol
-                        ios_icon_name="edit"
-                        android_material_icon_name="edit"
-                        size={18}
-                        color={colors.secondary}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleDelete(speaker)}
-                    >
-                      <IconSymbol
-                        ios_icon_name="delete"
-                        android_material_icon_name="delete"
-                        size={18}
-                        color="#DC2626"
-                      />
-                    </TouchableOpacity>
+            {speakers.map((speaker) => {
+              const speakerTopicDisplay = speaker.speakingTopic || 'No topic';
+              
+              return (
+                <View key={speaker.id} style={styles.tableRow}>
+                  <View style={[styles.tableCell, { flex: 2 }]}>
+                    <Image source={{ uri: speaker.photo }} style={styles.speakerPhoto} />
+                    <Text style={styles.speakerName}>{speaker.name}</Text>
+                  </View>
+                  <View style={[styles.tableCell, { flex: 2 }]}>
+                    <Text style={styles.tableCellText}>{speaker.title}</Text>
+                    <Text style={styles.tableCellSubtext}>{speaker.company}</Text>
+                  </View>
+                  <View style={[styles.tableCell, { flex: 2 }]}>
+                    <Text style={styles.tableCellText} numberOfLines={2}>{speakerTopicDisplay}</Text>
+                  </View>
+                  <View style={[styles.tableCell, { flex: 1 }]}>
+                    <View style={styles.actions}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleEdit(speaker)}
+                      >
+                        <IconSymbol
+                          ios_icon_name="edit"
+                          android_material_icon_name="edit"
+                          size={18}
+                          color={colors.secondary}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDelete(speaker)}
+                      >
+                        <IconSymbol
+                          ios_icon_name="delete"
+                          android_material_icon_name="delete"
+                          size={18}
+                          color="#DC2626"
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
       )}

@@ -128,42 +128,46 @@ export default function SpeakersScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredSpeakers.map((speaker, index) => (
-          <React.Fragment key={index}>
-            <TouchableOpacity
-              style={styles.speakerCard}
-              onPress={() => router.push(`/(tabs)/speaker/${speaker.id}` as any)}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={{ uri: speaker.photo }}
-                style={styles.speakerPhoto}
-              />
-              <View style={styles.speakerInfo}>
-                <Text style={styles.speakerName}>{speaker.name}</Text>
-                <Text style={styles.speakerTitle}>{speaker.title}</Text>
-                <Text style={styles.speakerCompany}>{speaker.company}</Text>
-                {(speaker.linkedinUrl || (speaker as any).linkedin_url) && (
-                  <View style={styles.linkedinContainer}>
-                    <IconSymbol
-                      ios_icon_name="link"
-                      android_material_icon_name="link"
-                      size={14}
-                      color={colors.secondary}
-                    />
-                    <Text style={styles.linkedinText}>LinkedIn</Text>
-                  </View>
-                )}
-              </View>
-              <IconSymbol
-                ios_icon_name="chevron-right"
-                android_material_icon_name="arrow-forward"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </React.Fragment>
-        ))}
+        {filteredSpeakers.map((speaker, index) => {
+          const speakingTopicDisplay = speaker.speakingTopic || '';
+          
+          return (
+            <React.Fragment key={index}>
+              <TouchableOpacity
+                style={styles.speakerCard}
+                onPress={() => router.push(`/(tabs)/speaker/${speaker.id}` as any)}
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={{ uri: speaker.photo }}
+                  style={styles.speakerPhoto}
+                />
+                <View style={styles.speakerInfo}>
+                  <Text style={styles.speakerName}>{speaker.name}</Text>
+                  <Text style={styles.speakerTitle}>{speaker.title}</Text>
+                  <Text style={styles.speakerCompany}>{speaker.company}</Text>
+                  {speakingTopicDisplay ? (
+                    <View style={styles.topicContainer}>
+                      <IconSymbol
+                        ios_icon_name="mic"
+                        android_material_icon_name="mic"
+                        size={14}
+                        color={colors.primary}
+                      />
+                      <Text style={styles.topicText} numberOfLines={1}>{speakingTopicDisplay}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron-right"
+                  android_material_icon_name="arrow-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
 
         {filteredSpeakers.length === 0 && (
           <View style={styles.emptyState}>
@@ -302,15 +306,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 8,
   },
-  linkedinContainer: {
+  topicContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  linkedinText: {
+  topicText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.secondary,
+    color: colors.primary,
+    flex: 1,
   },
   emptyState: {
     alignItems: 'center',

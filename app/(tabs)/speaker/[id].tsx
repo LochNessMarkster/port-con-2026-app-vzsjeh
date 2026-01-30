@@ -6,8 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  TouchableOpacity,
-  Linking,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -54,12 +52,6 @@ export default function SpeakerDetailScreen() {
     );
   }
 
-  const openLinkedIn = () => {
-    if (speaker.linkedin_url) {
-      Linking.openURL(speaker.linkedin_url);
-    }
-  };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -70,12 +62,19 @@ export default function SpeakerDetailScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const speakerNameDisplay = speaker.name;
+  const speakerTitleDisplay = speaker.title;
+  const speakerCompanyDisplay = speaker.company;
+  const speakerBioDisplay = speaker.bio;
+  const speakingTopicDisplay = speaker.speakingTopic || '';
+  const synopsisDisplay = speaker.synopsis || '';
+
   return (
     <>
       <Stack.Screen 
         options={{ 
           headerShown: true, 
-          title: speaker.name,
+          title: speakerNameDisplay,
           headerBackTitle: 'Back',
         }} 
       />
@@ -90,63 +89,78 @@ export default function SpeakerDetailScreen() {
               source={{ uri: speaker.photo }}
               style={styles.photo}
             />
-            <Text style={styles.name}>{speaker.name}</Text>
-            <Text style={styles.title}>{speaker.title}</Text>
-            <Text style={styles.company}>{speaker.company}</Text>
-
-            {speaker.linkedin_url && (
-              <TouchableOpacity
-                style={styles.linkedinButton}
-                onPress={openLinkedIn}
-              >
-                <IconSymbol
-                  ios_icon_name="link"
-                  android_material_icon_name="link"
-                  size={18}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.linkedinButtonText}>Connect on LinkedIn</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.name}>{speakerNameDisplay}</Text>
+            <Text style={styles.title}>{speakerTitleDisplay}</Text>
+            <Text style={styles.company}>{speakerCompanyDisplay}</Text>
           </View>
+
+          {speakingTopicDisplay ? (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <IconSymbol
+                  ios_icon_name="mic"
+                  android_material_icon_name="mic"
+                  size={20}
+                  color={colors.primary}
+                />
+                <Text style={styles.sectionTitle}>Speaking Topic</Text>
+              </View>
+              <Text style={styles.topicText}>{speakingTopicDisplay}</Text>
+            </View>
+          ) : null}
+
+          {synopsisDisplay ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Synopsis</Text>
+              <Text style={styles.synopsisText}>{synopsisDisplay}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Biography</Text>
-            <Text style={styles.bio}>{speaker.bio}</Text>
+            <Text style={styles.bio}>{speakerBioDisplay}</Text>
           </View>
 
           {speakerSessions.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Sessions</Text>
-              {speakerSessions.map((session, index) => (
-                <React.Fragment key={index}>
-                  <View style={styles.sessionCard}>
-                    <View style={styles.sessionTime}>
-                      <Text style={styles.sessionTimeText}>
-                        {formatTime(session.start_time)}
-                      </Text>
-                      <Text style={styles.sessionDate}>
-                        {formatDate(session.start_time)}
-                      </Text>
-                    </View>
-                    <Text style={styles.sessionTitle}>{session.title}</Text>
-                    <View style={styles.sessionFooter}>
-                      <View style={styles.roomContainer}>
-                        <IconSymbol
-                          ios_icon_name="location"
-                          android_material_icon_name="place"
-                          size={14}
-                          color={colors.textSecondary}
-                        />
-                        <Text style={styles.roomText}>{session.room?.name}</Text>
+              {speakerSessions.map((session, index) => {
+                const sessionTimeDisplay = formatTime(session.start_time);
+                const sessionDateDisplay = formatDate(session.start_time);
+                const sessionTitleDisplay = session.title;
+                const roomNameDisplay = session.room?.name || '';
+                const sessionTypeDisplay = session.type;
+                
+                return (
+                  <React.Fragment key={index}>
+                    <View style={styles.sessionCard}>
+                      <View style={styles.sessionTime}>
+                        <Text style={styles.sessionTimeText}>
+                          {sessionTimeDisplay}
+                        </Text>
+                        <Text style={styles.sessionDate}>
+                          {sessionDateDisplay}
+                        </Text>
                       </View>
-                      <View style={[styles.typeBadge, { backgroundColor: getTypeColor(session.type) }]}>
-                        <Text style={styles.typeBadgeText}>{session.type}</Text>
+                      <Text style={styles.sessionTitle}>{sessionTitleDisplay}</Text>
+                      <View style={styles.sessionFooter}>
+                        <View style={styles.roomContainer}>
+                          <IconSymbol
+                            ios_icon_name="location"
+                            android_material_icon_name="place"
+                            size={14}
+                            color={colors.textSecondary}
+                          />
+                          <Text style={styles.roomText}>{roomNameDisplay}</Text>
+                        </View>
+                        <View style={[styles.typeBadge, { backgroundColor: getTypeColor(sessionTypeDisplay) }]}>
+                          <Text style={styles.typeBadgeText}>{sessionTypeDisplay}</Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </React.Fragment>
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </View>
           )}
         </ScrollView>
@@ -211,31 +225,34 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 20,
-  },
-  linkedinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.secondary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  linkedinButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   section: {
     paddingHorizontal: 20,
     paddingVertical: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 16,
+  },
+  topicText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
+    lineHeight: 26,
+  },
+  synopsisText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: colors.text,
+    lineHeight: 24,
   },
   bio: {
     fontSize: 16,

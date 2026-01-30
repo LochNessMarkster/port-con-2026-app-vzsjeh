@@ -47,7 +47,7 @@ These endpoints are consumed by the main conference app and work without authent
   - **Implementation:** `app/admin/speakers.tsx`
   - Full CRUD interface with form validation
   - Photo URL preview
-  - LinkedIn profile support
+  - Speaking topic and synopsis fields
 
 #### Sessions Management
 - ✅ `POST /api/admin/sessions` - Create session

@@ -126,7 +126,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port of Houston Authority',
       bio: 'Leading the Port of Houston Authority with extensive experience in maritime operations and strategic development.',
       photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400',
-      linkedin_url: '',
+      speakingTopic: 'The Future of Port Operations',
+      synopsis: 'Exploring innovations and strategic initiatives transforming modern port operations.',
     },
     {
       id: '2',
@@ -135,7 +136,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port of Houston Authority',
       bio: 'Overseeing operational excellence and innovation at the Port of Houston.',
       photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Operational Excellence in Maritime Logistics',
+      synopsis: 'Best practices and innovations in port operations management.',
     },
     {
       id: '3',
@@ -144,7 +146,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port of Houston Authority',
       bio: 'Driving commercial growth and strategic partnerships for the Port of Houston.',
       photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Commercial Strategy and Growth',
+      synopsis: 'Strategies for expanding port business and building strategic partnerships.',
     },
     {
       id: '4',
@@ -153,7 +156,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port of Houston Authority',
       bio: 'Managing financial strategy and operations for the Port of Houston Authority.',
       photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Financial Planning for Port Infrastructure',
+      synopsis: 'Financial strategies supporting sustainable port development and growth.',
     },
     {
       id: '5',
@@ -162,7 +166,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port of Houston Authority',
       bio: 'Providing legal guidance and oversight for the Port of Houston Authority.',
       photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Legal Frameworks for Maritime Operations',
+      synopsis: 'Navigating legal and regulatory challenges in modern port operations.',
     },
     {
       id: '6',
@@ -171,7 +176,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Leading the Port Commission with strategic vision and industry expertise.',
       photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Strategic Vision for Port Development',
+      synopsis: 'Long-term strategic planning and vision for the Port of Houston.',
     },
     {
       id: '7',
@@ -180,7 +186,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Supporting the Port Commission with extensive maritime industry knowledge.',
       photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Maritime Industry Trends',
+      synopsis: 'Current trends and future outlook for the maritime industry.',
     },
     {
       id: '8',
@@ -189,7 +196,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Contributing strategic insights and governance to the Port Commission.',
       photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Governance and Strategic Planning',
+      synopsis: 'Effective governance models for port authorities.',
     },
     {
       id: '9',
@@ -198,7 +206,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Providing leadership and strategic direction for port development.',
       photo: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Infrastructure Development',
+      synopsis: 'Planning and executing major port infrastructure projects.',
     },
     {
       id: '10',
@@ -207,7 +216,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Bringing industry expertise and strategic vision to the Port Commission.',
       photo: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Industry Collaboration',
+      synopsis: 'Building partnerships across the maritime industry.',
     },
     {
       id: '11',
@@ -216,7 +226,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Contributing to the strategic development and governance of the Port of Houston.',
       photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Community Engagement',
+      synopsis: 'Strengthening relationships between ports and local communities.',
     },
     {
       id: '12',
@@ -225,7 +236,8 @@ function getMockSpeakers(): Speaker[] {
       company: 'Port Commission of the Port of Houston Authority',
       bio: 'Supporting port operations and strategic initiatives with industry knowledge.',
       photo: 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400',
-      linkedin_url: '',
+      speakingTopic: 'Technology and Innovation',
+      synopsis: 'Leveraging technology to enhance port operations and efficiency.',
     },
   ];
 }

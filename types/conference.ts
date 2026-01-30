@@ -13,7 +13,8 @@ export interface Speaker {
   company: string;
   bio: string;
   photo: string;
-  linkedin_url?: string;
+  speakingTopic?: string;
+  synopsis?: string;
 }
 
 export interface Session {

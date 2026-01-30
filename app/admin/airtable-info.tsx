@@ -36,7 +36,7 @@ function AirtableInfoContent() {
     },
     {
       title: 'What Data Gets Synced?',
-      content: '• Speakers: Names, titles, companies, bios, photos, LinkedIn profiles\n• Field Mapping:\n  - Name → name\n  - Title → title\n  - Company → company\n  - Bio → bio\n  - Photo (attachment) → photo (first attachment URL)\n  - LinkedIn → linkedinUrl',
+      content: '• Speakers: Names, titles, companies, bios, photos, speaking topics, and synopses\n• Field Mapping:\n  - Name or Speaker Name → name\n  - Title or Speaker Title → title\n  - Company → company\n  - Bio → bio\n  - Photo (attachment) → photo (first attachment URL)\n  - Speaking Topic or SpeakingTopic → speakingTopic\n  - Synopsis or Synopsis of Speaking Topic → synopsis',
     },
     {
       title: 'Sync Frequency',
@@ -44,7 +44,7 @@ function AirtableInfoContent() {
     },
     {
       title: 'Troubleshooting',
-      content: 'If sync fails:\n• Check that your Airtable API key is configured correctly in the backend\n• Verify the Base ID and Table ID are correct\n• Ensure your Airtable fields match the expected format (Name, Title, Company, Bio, Photo, LinkedIn)\n• Check the backend logs for detailed error messages\n• Try using the "Fetch from Airtable" button on the Speakers page to test the connection\n• Contact support if issues persist',
+      content: 'If sync fails:\n• Check that your Airtable API key is configured correctly in the backend\n• Verify the Base ID and Table ID are correct\n• Ensure your Airtable fields match the expected format (Name/Speaker Name, Title/Speaker Title, Company, Bio, Photo, Speaking Topic, Synopsis)\n• Check the backend logs for detailed error messages\n• Try using the "Fetch from Airtable" button on the Speakers page to test the connection\n• Contact support if issues persist',
     },
   ];
 
