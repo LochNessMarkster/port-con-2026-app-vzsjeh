@@ -174,16 +174,67 @@ export function register(app: App, fastify: FastifyInstance) {
             );
         });
 
+        // Log the field names from the first record for debugging
+        if (records.length > 0) {
+          const firstRecord = records[0].fields as any;
+          const fieldKeys = Object.keys(firstRecord);
+          app.logger.info({ fieldKeys }, 'Airtable record field names');
+        }
+
         const speakers = records.map((record) => {
           const fields = record.fields as any;
+
+          // Try multiple possible field name variations
+          const name =
+            fields.Name ||
+            fields.name ||
+            fields['Full Name'] ||
+            fields['Speaker Name'] ||
+            '';
+
+          const title =
+            fields.Title ||
+            fields.title ||
+            fields.Position ||
+            fields.Role ||
+            null;
+
+          const company =
+            fields.Company ||
+            fields.company ||
+            fields.Organization ||
+            fields.Affiliation ||
+            null;
+
+          const bio =
+            fields.Bio ||
+            fields.bio ||
+            fields.Biography ||
+            fields.Description ||
+            null;
+
+          const photoUrl =
+            fields.Photo?.[0]?.url ||
+            fields.photo?.[0]?.url ||
+            fields.Image?.[0]?.url ||
+            fields.Headshot?.[0]?.url ||
+            null;
+
+          const linkedinUrl =
+            fields.LinkedIn ||
+            fields.linkedin ||
+            fields['LinkedIn URL'] ||
+            fields.LinkedInURL ||
+            null;
+
           return {
             id: record.id,
-            name: fields.Name || '',
-            title: fields.Title || null,
-            company: fields.Company || null,
-            bio: fields.Bio || null,
-            photo: fields.Photo?.[0]?.url || null,
-            linkedinUrl: fields.LinkedIn || null,
+            name,
+            title,
+            company,
+            bio,
+            photo: photoUrl,
+            linkedinUrl,
           };
         });
 
