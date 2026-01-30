@@ -40,10 +40,25 @@ export default function SpeakersScreen() {
       
       const airtableSpeakers = await apiGet<Speaker[]>('/api/speakers/airtable');
       
+      console.log('[Speakers] Raw response:', JSON.stringify(airtableSpeakers, null, 2));
+      
       if (airtableSpeakers && airtableSpeakers.length > 0) {
-        setSpeakers(airtableSpeakers);
-        setAirtableMessage(`✓ Loaded ${airtableSpeakers.length} speakers from Airtable`);
-        console.log('[Speakers] Fetched', airtableSpeakers.length, 'speakers from Airtable');
+        // Check if speakers have valid names
+        const validSpeakers = airtableSpeakers.filter(s => s.name && s.name.trim() !== '');
+        const emptyNameCount = airtableSpeakers.length - validSpeakers.length;
+        
+        if (validSpeakers.length > 0) {
+          setSpeakers(airtableSpeakers);
+          const message = emptyNameCount > 0 
+            ? `✓ Loaded ${validSpeakers.length} speakers (${emptyNameCount} with missing names)`
+            : `✓ Loaded ${validSpeakers.length} speakers from Airtable`;
+          setAirtableMessage(message);
+          console.log('[Speakers] Fetched', airtableSpeakers.length, 'speakers from Airtable');
+          console.log('[Speakers] Valid speakers with names:', validSpeakers.length);
+        } else {
+          setAirtableMessage(`⚠️ Fetched ${airtableSpeakers.length} records but all have empty names. Check Airtable field mapping.`);
+          console.warn('[Speakers] All speakers have empty names. Field mapping may be incorrect.');
+        }
       } else {
         setAirtableMessage('No speakers found in Airtable');
       }
@@ -52,7 +67,7 @@ export default function SpeakersScreen() {
       setAirtableMessage(`Error: ${error instanceof Error ? error.message : 'Failed to fetch from Airtable'}`);
     } finally {
       setFetchingAirtable(false);
-      setTimeout(() => setAirtableMessage(''), 5000);
+      setTimeout(() => setAirtableMessage(''), 8000);
     }
   };
 
@@ -128,7 +143,7 @@ export default function SpeakersScreen() {
                 <Text style={styles.speakerName}>{speaker.name}</Text>
                 <Text style={styles.speakerTitle}>{speaker.title}</Text>
                 <Text style={styles.speakerCompany}>{speaker.company}</Text>
-                {speaker.linkedin_url && (
+                {(speaker.linkedinUrl || (speaker as any).linkedin_url) && (
                   <View style={styles.linkedinContainer}>
                     <IconSymbol
                       ios_icon_name="link"
