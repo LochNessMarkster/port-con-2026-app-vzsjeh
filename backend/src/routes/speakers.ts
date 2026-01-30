@@ -1,7 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
+import Airtable from 'airtable';
 import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
+
+const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
+const AIRTABLE_TABLE_ID = 'tblxn3Yie523MallN';
+const AIRTABLE_TOKEN_FALLBACK = 'patCsZvxAEJmBpJGu.8c98dc7c1d088a1b0ef2ef73a02e8d4b7cd4a8ce9a5f36d79ab0265c676c6f8c';
 
 export function register(app: App, fastify: FastifyInstance) {
   // GET /api/speakers - Returns all speakers
@@ -106,6 +111,87 @@ export function register(app: App, fastify: FastifyInstance) {
       } catch (error) {
         app.logger.error({ err: error, speakerId: id }, 'Failed to fetch speaker');
         throw error;
+      }
+    }
+  );
+
+  // GET /api/speakers/airtable - Fetch speakers directly from Airtable
+  fastify.get(
+    '/api/speakers/airtable',
+    {
+      schema: {
+        description: 'Fetch speakers directly from Airtable',
+        tags: ['speakers'],
+        response: {
+          200: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                title: { type: ['string', 'null'] },
+                company: { type: ['string', 'null'] },
+                bio: { type: ['string', 'null'] },
+                photo: { type: ['string', 'null'] },
+                linkedinUrl: { type: ['string', 'null'] },
+              },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      app.logger.info('Fetching speakers from Airtable');
+
+      try {
+        const airtableToken = process.env.AIRTABLE_TOKEN || AIRTABLE_TOKEN_FALLBACK;
+
+        const base = new Airtable({ apiKey: airtableToken }).base(AIRTABLE_BASE_ID);
+
+        const records: any[] = [];
+        await new Promise<void>((resolve, reject) => {
+          base.table(AIRTABLE_TABLE_ID)
+            .select()
+            .eachPage(
+              (pageRecords, fetchNextPage) => {
+                records.push(...pageRecords);
+                fetchNextPage();
+              },
+              (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve();
+                }
+              }
+            );
+        });
+
+        const speakers = records.map((record) => {
+          const fields = record.fields as any;
+          return {
+            id: record.id,
+            name: fields.Name || '',
+            title: fields.Title || null,
+            company: fields.Company || null,
+            bio: fields.Bio || null,
+            photo: fields.Photo?.[0]?.url || null,
+            linkedinUrl: fields.LinkedIn || null,
+          };
+        });
+
+        app.logger.info({ count: speakers.length }, 'Speakers fetched from Airtable successfully');
+        return speakers;
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to fetch speakers from Airtable');
+        return reply.status(500).send({ error: 'Failed to fetch speakers from Airtable' });
       }
     }
   );

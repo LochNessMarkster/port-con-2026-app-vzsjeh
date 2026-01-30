@@ -5,7 +5,8 @@ import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
-const AIRTABLE_VIEW_ID = 'shrDhhVoXnWHC0oWj';
+const AIRTABLE_TABLE_ID = 'tblxn3Yie523MallN';
+const AIRTABLE_TOKEN_FALLBACK = 'patCsZvxAEJmBpJGu.8c98dc7c1d088a1b0ef2ef73a02e8d4b7cd4a8ce9a5f36d79ab0265c676c6f8c';
 
 export function registerAdminRoutes(app: App) {
   const requireAuth = app.requireAuth();
@@ -36,20 +37,14 @@ export function registerAdminRoutes(app: App) {
       app.logger.info('Starting Airtable sync');
 
       try {
-        const airtableToken = process.env.AIRTABLE_TOKEN;
-        if (!airtableToken) {
-          app.logger.error('AIRTABLE_TOKEN environment variable not set');
-          return reply.status(500).send({ error: 'Airtable token not configured' });
-        }
+        const airtableToken = process.env.AIRTABLE_TOKEN || AIRTABLE_TOKEN_FALLBACK;
 
         const base = new Airtable({ apiKey: airtableToken }).base(AIRTABLE_BASE_ID);
 
         const records: any[] = [];
-        await new Promise((resolve, reject) => {
-          base.table(AIRTABLE_VIEW_ID)
-            .select({
-              view: AIRTABLE_VIEW_ID,
-            })
+        await new Promise<void>((resolve, reject) => {
+          base.table(AIRTABLE_TABLE_ID)
+            .select()
             .eachPage(
               (pageRecords, fetchNextPage) => {
                 records.push(...pageRecords);
@@ -59,7 +54,7 @@ export function registerAdminRoutes(app: App) {
                 if (err) {
                   reject(err);
                 } else {
-                  resolve(records);
+                  resolve();
                 }
               }
             );
