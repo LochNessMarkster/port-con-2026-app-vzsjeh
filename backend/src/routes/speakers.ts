@@ -109,69 +109,55 @@ export function register(app: App, fastify: FastifyInstance) {
             );
         });
 
+        app.logger.info(
+          { tableId: AIRTABLE_TABLE_ID },
+          'Fetching speakers from Airtable table'
+        );
+
         // Log the field names from the first record for debugging
         if (records.length > 0) {
           const firstRecord = records[0].fields as any;
           const fieldKeys = Object.keys(firstRecord);
-          app.logger.info({ fieldKeys }, 'Airtable record field names');
+          app.logger.info(
+            { fieldKeys, firstRecordId: records[0].id },
+            'Airtable record field names found'
+          );
         }
 
-        const speakers = records.map((record) => {
+        const speakers = records.map((record, index) => {
           const fields = record.fields as any;
 
-          // Try multiple possible field name variations
-          const name =
-            fields.Name ||
-            fields.name ||
-            fields['Full Name'] ||
-            fields['Speaker Name'] ||
-            '';
+          // Use exact Airtable field names for speaker data
+          const name = fields['Speaker Name'] || '';
+          const title = fields['Speaker Title'] || null;
+          const speakingTopic = fields['Speaking Topic'] || null;
+          const synopsis = fields['Synopsis of speaking topic'] || null;
+          const bio = fields.Bio || null;
+          const photoUrl = fields.Photo?.[0]?.url || null;
 
-          const title =
-            fields.Title ||
-            fields.title ||
-            fields.Position ||
-            fields.Role ||
-            null;
-
-          const company =
-            fields.Company ||
-            fields.company ||
-            fields.Organization ||
-            fields.Affiliation ||
-            null;
-
-          const bio =
-            fields.Bio ||
-            fields.bio ||
-            fields.Biography ||
-            fields.Description ||
-            null;
-
-          const photoUrl =
-            fields.Photo?.[0]?.url ||
-            fields.photo?.[0]?.url ||
-            fields.Image?.[0]?.url ||
-            fields.Headshot?.[0]?.url ||
-            null;
-
-          const speakingTopic =
-            fields['Speaking Topic'] ||
-            fields.SpeakingTopic ||
-            fields['speaking_topic'] ||
-            null;
-
-          const synopsis =
-            fields.Synopsis ||
-            fields['Synopsis of Speaking Topic'] ||
-            fields.synopsis ||
-            null;
+          // Log first few records to show what fields are being extracted
+          if (index < 2) {
+            app.logger.debug(
+              {
+                recordId: record.id,
+                extractedData: {
+                  name,
+                  title,
+                  speakingTopic,
+                  synopsis,
+                  bio,
+                  photoUrl,
+                },
+              },
+              `Extracted speaker data for record ${index + 1}`
+            );
+          }
 
           return {
             id: record.id,
             name,
             title,
-            company,
+            company: null,
             bio,
             photo: photoUrl,
             speakingTopic,
@@ -179,7 +165,10 @@ export function register(app: App, fastify: FastifyInstance) {
           };
         });
 
-        app.logger.info({ count: speakers.length }, 'Speakers fetched from Airtable successfully');
+        app.logger.info(
+          { count: speakers.length, tableId: AIRTABLE_TABLE_ID },
+          'Speakers fetched from Airtable successfully'
+        );
         return speakers;
       } catch (error) {
         app.logger.error({ err: error }, 'Failed to fetch speakers from Airtable');

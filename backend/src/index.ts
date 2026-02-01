@@ -33,3 +33,10 @@ registerAdminRoutes(app);
 
 await app.run();
 app.logger.info('Application running');
+app.logger.info(
+  {
+    airtableBase: 'appkKjciinTlnsbkd',
+    airtableTableId: 'tblxn3Yie523MallN',
+  },
+  'Airtable configuration - verify table ID is correct for Speakers table'
+);
