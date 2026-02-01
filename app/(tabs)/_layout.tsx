@@ -50,6 +50,7 @@ export default function TabLayout() {
         <Stack.Screen name="speakers" />
         <Stack.Screen name="exhibitors" />
         <Stack.Screen name="sponsors" />
+        <Stack.Screen name="ports" />
         <Stack.Screen name="my-schedule" />
         <Stack.Screen name="speaker/[id]" />
       </Stack>

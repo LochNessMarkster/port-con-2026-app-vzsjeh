@@ -53,5 +53,12 @@ export interface Sponsor {
   display_order: number;
 }
 
+export interface Port {
+  id: string;
+  name: string;
+  link?: string;
+  logo?: string;
+}
+
 export type SessionType = Session['type'];
 export type SponsorTier = Sponsor['tier'];

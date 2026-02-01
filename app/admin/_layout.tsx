@@ -18,6 +18,9 @@ export default function AdminLayout() {
         <Stack.Screen name="speakers" />
         <Stack.Screen name="sessions" />
         <Stack.Screen name="rooms" />
+        <Stack.Screen name="ports" />
+        <Stack.Screen name="airtable-info" />
+        <Stack.Screen name="check-airtable-fields" />
       </Stack>
     </AuthProvider>
   );

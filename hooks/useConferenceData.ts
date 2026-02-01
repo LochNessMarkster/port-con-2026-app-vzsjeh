@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Session, Speaker, Exhibitor, Sponsor, Room } from '@/types/conference';
+import { Session, Speaker, Exhibitor, Sponsor, Room, Port } from '@/types/conference';
 import { apiGet, isBackendConfigured } from '@/utils/api';
 
 export function useConferenceData() {
@@ -8,6 +8,7 @@ export function useConferenceData() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [ports, setPorts] = useState<Port[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,13 +29,14 @@ export function useConferenceData() {
         setSpeakers(getMockSpeakers());
         setExhibitors(getMockExhibitors());
         setSponsors(getMockSponsors());
+        setPorts(getMockPorts());
         setRooms(getMockRooms());
         setLoading(false);
         return;
       }
 
       // Fetch data from API endpoints
-      const [sessionsData, speakersData, exhibitorsData, sponsorsData, roomsData] = await Promise.all([
+      const [sessionsData, speakersData, exhibitorsData, sponsorsData, portsData, roomsData] = await Promise.all([
         apiGet<Session[]>('/api/sessions').catch(err => {
           console.error('Error fetching sessions:', err);
           return getMockSessions();
@@ -51,6 +53,10 @@ export function useConferenceData() {
           console.error('Error fetching sponsors:', err);
           return getMockSponsors();
         }),
+        apiGet<Port[]>('/api/ports').catch(err => {
+          console.error('Error fetching ports:', err);
+          return getMockPorts();
+        }),
         apiGet<Room[]>('/api/rooms').catch(err => {
           console.error('Error fetching rooms:', err);
           return getMockRooms();
@@ -62,6 +68,7 @@ export function useConferenceData() {
       console.log('Speakers:', speakersData.length);
       console.log('Exhibitors:', exhibitorsData.length);
       console.log('Sponsors:', sponsorsData.length);
+      console.log('Ports:', portsData.length);
       console.log('Rooms:', roomsData.length);
       
       // If API returns empty data, use mock data as fallback
@@ -69,6 +76,7 @@ export function useConferenceData() {
       setSpeakers(speakersData.length > 0 ? speakersData : getMockSpeakers());
       setExhibitors(exhibitorsData.length > 0 ? exhibitorsData : getMockExhibitors());
       setSponsors(sponsorsData.length > 0 ? sponsorsData : getMockSponsors());
+      setPorts(portsData.length > 0 ? portsData : getMockPorts());
       setRooms(roomsData.length > 0 ? roomsData : getMockRooms());
       
       setLoading(false);
@@ -80,6 +88,7 @@ export function useConferenceData() {
       setSpeakers(getMockSpeakers());
       setExhibitors(getMockExhibitors());
       setSponsors(getMockSponsors());
+      setPorts(getMockPorts());
       setRooms(getMockRooms());
       setLoading(false);
     }
@@ -95,6 +104,7 @@ export function useConferenceData() {
     speakers,
     exhibitors,
     sponsors,
+    ports,
     rooms,
     loading,
     error,
@@ -103,6 +113,7 @@ export function useConferenceData() {
     setSessions,
     setExhibitors,
     setSponsors,
+    setPorts,
     setRooms,
   };
 }
@@ -388,6 +399,35 @@ function getMockSponsors(): Sponsor[] {
       logo: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=300',
       website: 'https://techinnovations.com',
       display_order: 3,
+    },
+  ];
+}
+
+function getMockPorts(): Port[] {
+  return [
+    {
+      id: '1',
+      name: 'Port of Houston',
+      link: 'https://portofhouston.com',
+      logo: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=300',
+    },
+    {
+      id: '2',
+      name: 'Port of Long Beach',
+      link: 'https://polb.com',
+      logo: 'https://images.unsplash.com/photo-1605648916319-cf082f7524a1?w=300',
+    },
+    {
+      id: '3',
+      name: 'Port of Los Angeles',
+      link: 'https://portoflosangeles.org',
+      logo: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=300',
+    },
+    {
+      id: '4',
+      name: 'Port of New York and New Jersey',
+      link: 'https://panynj.gov',
+      logo: 'https://images.unsplash.com/photo-1546436836-07a91091f160?w=300',
     },
   ];
 }

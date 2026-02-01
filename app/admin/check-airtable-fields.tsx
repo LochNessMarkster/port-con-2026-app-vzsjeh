@@ -28,24 +28,47 @@ function CheckAirtableFieldsContent() {
       setError('');
       console.log('[Airtable Check] Fetching from Airtable...');
       
-      const response = await apiGet<any[]>('/api/speakers/airtable');
+      // Fetch from available Airtable endpoints
+      // Note: Not all tables may have direct Airtable endpoints
+      const [speakersResponse, portsResponse] = await Promise.all([
+        apiGet<any[]>('/api/speakers/airtable').catch(err => {
+          console.error('[Airtable Check] Speakers error:', err);
+          return [];
+        }),
+        apiGet<any[]>('/api/ports/airtable').catch(err => {
+          console.error('[Airtable Check] Ports error:', err);
+          return [];
+        }),
+      ]);
       
-      if (response && response.length > 0) {
-        const firstRecord = response[0];
-        const fieldNames = Object.keys(firstRecord);
-        const sampleData = firstRecord;
-        
-        setFieldData({
-          totalRecords: response.length,
-          fieldNames,
-          sampleRecord: sampleData,
-          allRecords: response,
-        });
-        
-        console.log('[Airtable Check] Field names:', fieldNames);
-        console.log('[Airtable Check] Sample record:', sampleData);
+      const data: any = {
+        speakers: null,
+        ports: null,
+      };
+
+      if (speakersResponse && speakersResponse.length > 0) {
+        data.speakers = {
+          totalRecords: speakersResponse.length,
+          fieldNames: Object.keys(speakersResponse[0]),
+          sampleRecord: speakersResponse[0],
+          allRecords: speakersResponse,
+        };
+      }
+
+      if (portsResponse && portsResponse.length > 0) {
+        data.ports = {
+          totalRecords: portsResponse.length,
+          fieldNames: Object.keys(portsResponse[0]),
+          sampleRecord: portsResponse[0],
+          allRecords: portsResponse,
+        };
+      }
+
+      if (!data.speakers && !data.ports) {
+        setError('No records found in Airtable tables. Note: Sponsors are synced via the main sync button.');
       } else {
-        setError('No records found in Airtable');
+        setFieldData(data);
+        console.log('[Airtable Check] Data fetched successfully');
       }
     } catch (err) {
       console.error('[Airtable Check] Error:', err);
@@ -132,43 +155,60 @@ function CheckAirtableFieldsContent() {
           {fieldData ? (
             <View style={styles.resultsBox}>
               <Text style={styles.resultsTitle}>✓ Results:</Text>
-              <Text style={styles.resultsText}>
-                Total Records: {fieldData.totalRecords}
-              </Text>
               
-              <Text style={styles.resultsSubtitle}>Field Names Found in Airtable:</Text>
-              {fieldData.fieldNames.map((fieldName: string, index: number) => (
-                <Text key={index} style={styles.fieldName}>• {fieldName}</Text>
-              ))}
-              
-              <Text style={styles.resultsSubtitle}>Sample Record Data:</Text>
-              <View style={styles.codeBox}>
-                <Text style={styles.codeText}>
-                  {JSON.stringify(fieldData.sampleRecord, null, 2)}
-                </Text>
-              </View>
-
-              <Text style={styles.resultsSubtitle}>All Records Preview (first 5):</Text>
-              {fieldData.allRecords.slice(0, 5).map((record: any, index: number) => {
-                const recordName = record.name || '(no name)';
-                const recordId = record.id || '(no id)';
-                
-                return (
-                  <View key={index} style={styles.recordPreview}>
-                    <Text style={styles.recordText}>
-                      {index + 1}. ID: {recordId}
-                    </Text>
-                    <Text style={styles.recordText}>
-                      Name: {recordName}
+              {/* Speakers Section */}
+              {fieldData.speakers ? (
+                <>
+                  <Text style={styles.resultsSubtitle}>📢 Speakers Table</Text>
+                  <Text style={styles.resultsText}>
+                    Total Records: {fieldData.speakers.totalRecords}
+                  </Text>
+                  
+                  <Text style={styles.resultsSubtitle}>Field Names Found:</Text>
+                  {fieldData.speakers.fieldNames.map((fieldName: string, index: number) => (
+                    <Text key={index} style={styles.fieldName}>• {fieldName}</Text>
+                  ))}
+                  
+                  <Text style={styles.resultsSubtitle}>Sample Record:</Text>
+                  <View style={styles.codeBox}>
+                    <Text style={styles.codeText}>
+                      {JSON.stringify(fieldData.speakers.sampleRecord, null, 2)}
                     </Text>
                   </View>
-                );
-              })}
-              {fieldData.allRecords.length > 5 ? (
-                <Text style={styles.moreText}>
-                  ... and {fieldData.allRecords.length - 5} more records
-                </Text>
-              ) : null}
+                </>
+              ) : (
+                <Text style={styles.noDataText}>No speakers found in Airtable</Text>
+              )}
+
+              {/* Sponsors Note */}
+              <Text style={[styles.resultsSubtitle, { marginTop: 24 }]}>🏢 Sponsors Table</Text>
+              <Text style={styles.noDataText}>
+                Sponsors are synced via the main "Sync from Airtable" button. Use that to verify sponsor field mapping.
+              </Text>
+
+              {/* Ports Section */}
+              {fieldData.ports ? (
+                <>
+                  <Text style={[styles.resultsSubtitle, { marginTop: 24 }]}>⚓ Ports Table</Text>
+                  <Text style={styles.resultsText}>
+                    Total Records: {fieldData.ports.totalRecords}
+                  </Text>
+                  
+                  <Text style={styles.resultsSubtitle}>Field Names Found:</Text>
+                  {fieldData.ports.fieldNames.map((fieldName: string, index: number) => (
+                    <Text key={index} style={styles.fieldName}>• {fieldName}</Text>
+                  ))}
+                  
+                  <Text style={styles.resultsSubtitle}>Sample Record:</Text>
+                  <View style={styles.codeBox}>
+                    <Text style={styles.codeText}>
+                      {JSON.stringify(fieldData.ports.sampleRecord, null, 2)}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.noDataText}>No ports found in Airtable</Text>
+              )}
             </View>
           ) : null}
         </View>
@@ -176,8 +216,10 @@ function CheckAirtableFieldsContent() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Expected Field Mapping</Text>
           <Text style={styles.text}>
-            The backend now expects these EXACT Airtable field names:
+            The backend expects these EXACT Airtable field names:
           </Text>
+          
+          <Text style={[styles.text, { marginTop: 16, fontWeight: '600' }]}>📢 Speakers Table:</Text>
           <View style={styles.mappingTable}>
             <View style={styles.mappingRow}>
               <Text style={styles.mappingHeader}>Airtable Field</Text>
@@ -208,16 +250,63 @@ function CheckAirtableFieldsContent() {
               <Text style={styles.mappingCell}>speaker.photo</Text>
             </View>
           </View>
-          <Text style={[styles.text, { marginTop: 12 }]}>
-            Note: The "Company" field is not used since it doesn't exist in your Airtable.
-          </Text>
+
+          <Text style={[styles.text, { marginTop: 16, fontWeight: '600' }]}>🏢 Sponsors Table:</Text>
+          <View style={styles.mappingTable}>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingHeader}>Airtable Field</Text>
+              <Text style={styles.mappingHeader}>Maps To</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Sponsor Name</Text>
+              <Text style={styles.mappingCell}>sponsor.name</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Sponsor Level</Text>
+              <Text style={styles.mappingCell}>sponsor.tier</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Sponsor Bio</Text>
+              <Text style={styles.mappingCell}>sponsor.description</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Companylink</Text>
+              <Text style={styles.mappingCell}>sponsor.website</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>LogoGraphic (attachment)</Text>
+              <Text style={styles.mappingCell}>sponsor.logo</Text>
+            </View>
+          </View>
+
+          <Text style={[styles.text, { marginTop: 16, fontWeight: '600' }]}>⚓ Ports Table:</Text>
+          <View style={styles.mappingTable}>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingHeader}>Airtable Field</Text>
+              <Text style={styles.mappingHeader}>Maps To</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Port Name</Text>
+              <Text style={styles.mappingCell}>port.name</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Port Link</Text>
+              <Text style={styles.mappingCell}>port.link</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Logo Graphic (attachment)</Text>
+              <Text style={styles.mappingCell}>port.logo</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Configuration</Text>
           <Text style={styles.text}>
             Base ID: appkKjciinTlnsbkd{'\n'}
-            Table ID: tblxn3Yie523MallN
+            Speakers Table: tblNp1JZk4ARZZZlT{'\n'}
+            Sponsors Table: tblgWrwRvpdcVG8sB{'\n'}
+            Ports Table: tblrXosiVXKhJHYLu
           </Text>
         </View>
 
@@ -229,12 +318,26 @@ function CheckAirtableFieldsContent() {
             3. The field names should match exactly (case-sensitive){'\n'}
             {'\n'}
             Your Airtable columns should be:{'\n'}
+            {'\n'}
+            Speakers Table:{'\n'}
             • Speaker Name{'\n'}
             • Speaker Title{'\n'}
             • Speaking Topic{'\n'}
             • Synopsis of speaking topic{'\n'}
             • Bio{'\n'}
             • Photo{'\n'}
+            {'\n'}
+            Sponsors Table:{'\n'}
+            • Sponsor Name{'\n'}
+            • Sponsor Level{'\n'}
+            • Sponsor Bio{'\n'}
+            • Companylink{'\n'}
+            • LogoGraphic{'\n'}
+            {'\n'}
+            Ports Table:{'\n'}
+            • Port Name{'\n'}
+            • Port Link{'\n'}
+            • Logo Graphic{'\n'}
             {'\n'}
             If they match, the sync should work correctly!
           </Text>
@@ -404,6 +507,13 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  noDataText: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
     fontStyle: 'italic',

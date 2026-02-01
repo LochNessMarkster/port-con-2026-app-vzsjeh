@@ -139,6 +139,20 @@ function DashboardContent() {
               <Text style={styles.cardTitle}>Rooms</Text>
               <Text style={styles.cardDescription}>Manage venue rooms</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push('/admin/ports' as any)}
+            >
+              <IconSymbol
+                ios_icon_name="anchor"
+                android_material_icon_name="directions-boat"
+                size={32}
+                color={colors.primary}
+              />
+              <Text style={styles.cardTitle}>Ports</Text>
+              <Text style={styles.cardDescription}>Manage participating ports</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

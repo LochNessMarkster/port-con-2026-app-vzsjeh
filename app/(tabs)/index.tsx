@@ -47,8 +47,8 @@ export default function HomeScreen() {
     { title: 'Speakers', icon: 'person', route: '/(tabs)/speakers', color: colors.secondary },
     { title: 'Exhibitors', icon: 'store', route: '/(tabs)/exhibitors', color: colors.accent },
     { title: 'Sponsors', icon: 'star', route: '/(tabs)/sponsors', color: colors.primary },
-    { title: 'My Schedule', icon: 'favorite', route: '/(tabs)/my-schedule', color: colors.secondary },
-    { title: 'Event Map', icon: 'map', route: '/(tabs)/map', color: colors.accent },
+    { title: 'Ports', icon: 'directions-boat', route: '/(tabs)/ports', color: colors.secondary },
+    { title: 'My Schedule', icon: 'favorite', route: '/(tabs)/my-schedule', color: colors.accent },
   ];
 
   const formatTime = (dateString: string) => {

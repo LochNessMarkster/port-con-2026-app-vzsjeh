@@ -20,6 +20,7 @@ Then press `w` to open in web browser (recommended for admin features).
    - **Schedule** - Browse sessions by day, filter by type
    - **Exhibitors** - See exhibitor booths and categories
    - **Sponsors** - View sponsors by tier (Platinum, Gold, Silver, Bronze)
+   - **Ports** - View participating ports with logos and links (NEW!)
 
 #### Fetch Speakers from Airtable (NEW!)
 1. Go to **Speakers** tab
@@ -198,6 +199,63 @@ Since this is a new deployment, create an account:
 **Edit/Delete Sponsor:**
 - Follow same pattern as speakers
 
+#### Test Ports Management (NEW!)
+
+**Create Port:**
+1. Click "Ports" card on dashboard
+2. Click "Add Port" button
+3. Fill in:
+   - Name: `Port of Houston`
+   - Link: `https://portofhouston.com`
+   - Logo URL: `https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=300`
+4. Click "Save"
+5. Verify port appears in the list
+
+**Edit Port:**
+1. Click the edit icon (pencil) next to a port
+2. Modify any field (e.g., change link or logo)
+3. Click "Save"
+4. Verify changes are reflected
+
+**Delete Port:**
+1. Click the delete icon (trash) next to a port
+2. Confirm deletion in the modal
+3. Verify port is removed from the list
+
+**View Ports in Public App:**
+1. Navigate to the **Ports** tab in the public app
+2. Verify ports display with:
+   - Port name
+   - Port logo (if provided)
+   - "Visit Website" button (if link provided)
+3. Click "Visit Website" to test external links
+
+#### Test Airtable Sync with Ports (NEW!)
+
+**Sync All Data from Airtable:**
+1. Login to Admin Dashboard
+2. Click "View Integration Guide" in the Airtable Integration card
+3. Review the updated configuration:
+   - Speakers Table: tblNp1JZk4ARZZZlT
+   - Sponsors Table: tblgWrwRvpdcVG8sB
+   - Ports Table: tblrXosiVXKhJHYLu
+4. Click "Sync from Airtable" button at the top
+5. Wait for sync to complete
+6. Should see success modal with counts:
+   - Speakers: X created, Y updated
+   - Sponsors: X created, Y updated
+   - Ports: X created, Y updated
+7. Verify data appears in respective management pages
+
+**Check Field Mapping:**
+1. Click "Check Field Mapping" button
+2. Click "Check Airtable Fields"
+3. Review results for:
+   - Speakers table fields
+   - Ports table fields
+4. Verify field names match expected mapping
+5. Review sample records
+
 ### 4. Test Data Persistence
 
 1. Create some data (speakers, sessions, etc.)
@@ -251,6 +309,7 @@ Since this is a new deployment, create an account:
 ### Public Features
 - ✅ All data loads from backend
 - ✅ **NEW!** Fetch speakers directly from Airtable
+- ✅ **NEW!** Ports display with logos and links
 - ✅ Search and filters work
 - ✅ Speaker details show correctly
 - ✅ Sessions display with speakers and rooms
@@ -261,11 +320,13 @@ Since this is a new deployment, create an account:
 - ✅ Login works with email/password
 - ✅ Protected routes redirect to login
 - ✅ CRUD operations work for all entities
+- ✅ **NEW!** Ports management (create, edit, delete)
 - ✅ Confirmation modals appear before delete
 - ✅ Forms validate required fields
 - ✅ Data persists after refresh
-- ✅ **NEW!** Airtable sync to database works (if configured)
+- ✅ **NEW!** Airtable sync includes speakers, sponsors, and ports
 - ✅ **NEW!** Airtable direct fetch works (no auth required)
+- ✅ **NEW!** Field mapping checker for speakers and ports
 
 ### Error Handling
 - ✅ Network errors show user-friendly messages
@@ -355,23 +416,33 @@ Website: https://maritimeinnovation.com
 Display Order: 2
 ```
 
+### Port (NEW!)
+```
+Name: Port of Long Beach
+Link: https://polb.com
+Logo: https://images.unsplash.com/photo-1605648916319-cf082f7524a1?w=300
+```
+
 ## Success Criteria
 
 You've successfully tested the integration when:
 
 1. ✅ You can view all conference data in the public app
-2. ✅ **NEW!** You can fetch speakers from Airtable without admin access
-3. ✅ You can login to the admin panel
-4. ✅ **NEW!** You can sync Airtable data to database from admin panel
-5. ✅ You can create, edit, and delete speakers
-6. ✅ You can create, edit, and delete sessions
-7. ✅ You can create, edit, and delete rooms
-8. ✅ You can create, edit, and delete exhibitors
-9. ✅ You can create, edit, and delete sponsors
-10. ✅ Changes in admin panel appear in the public app
-11. ✅ Data persists after browser refresh
-12. ✅ Error messages appear for invalid operations
-13. ✅ Airtable integration works (both direct fetch and sync)
+2. ✅ **NEW!** You can view ports with logos and links
+3. ✅ **NEW!** You can fetch speakers from Airtable without admin access
+4. ✅ You can login to the admin panel
+5. ✅ **NEW!** You can sync speakers, sponsors, and ports from Airtable
+6. ✅ You can create, edit, and delete speakers
+7. ✅ You can create, edit, and delete sessions
+8. ✅ You can create, edit, and delete rooms
+9. ✅ You can create, edit, and delete exhibitors
+10. ✅ You can create, edit, and delete sponsors
+11. ✅ **NEW!** You can create, edit, and delete ports
+12. ✅ Changes in admin panel appear in the public app
+13. ✅ Data persists after browser refresh
+14. ✅ Error messages appear for invalid operations
+15. ✅ Airtable integration works (both direct fetch and sync)
+16. ✅ **NEW!** Field mapping checker shows correct Airtable fields
 
 ## Next Steps
 
