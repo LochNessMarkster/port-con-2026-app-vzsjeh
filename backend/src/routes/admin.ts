@@ -5,7 +5,9 @@ import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
-const AIRTABLE_TABLE_ID = 'tblxn3Yie523MallN';
+const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
+const AIRTABLE_SPONSORS_TABLE_ID = 'tblgWrwRvpdcVG8sB';
+const AIRTABLE_PORTS_TABLE_ID = 'tblrXosiVXKhJHYLu';
 const AIRTABLE_TOKEN_FALLBACK = 'patCsZvxAEJmBpJGu.8c98dc7c1d088a1b0ef2ef73a02e8d4b7cd4a8ce9a5f36d79ab0265c676c6f8c';
 
 export function registerAdminRoutes(app: App) {
@@ -43,7 +45,7 @@ export function registerAdminRoutes(app: App) {
 
         const records: any[] = [];
         await new Promise<void>((resolve, reject) => {
-          base.table(AIRTABLE_TABLE_ID)
+          base.table(AIRTABLE_SPEAKERS_TABLE_ID)
             .select()
             .eachPage(
               (pageRecords, fetchNextPage) => {
@@ -103,6 +105,138 @@ export function registerAdminRoutes(app: App) {
 
         app.logger.info(
           { speakersCreated, speakersUpdated },
+          'Speakers sync completed'
+        );
+
+        // Sync Sponsors
+        let sponsorsCreated = 0;
+        let sponsorsUpdated = 0;
+
+        const sponsorRecords: any[] = [];
+        await new Promise<void>((resolve, reject) => {
+          base.table(AIRTABLE_SPONSORS_TABLE_ID)
+            .select()
+            .eachPage(
+              (pageRecords, fetchNextPage) => {
+                sponsorRecords.push(...pageRecords);
+                fetchNextPage();
+              },
+              (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve();
+                }
+              }
+            );
+        });
+
+        app.logger.info({ recordCount: sponsorRecords.length }, 'Retrieved sponsor records from Airtable');
+
+        for (const record of sponsorRecords) {
+          const fields = record.fields as any;
+          const airtableId = record.id;
+
+          const existingSponsor = await app.db.query.sponsors.findFirst({
+            where: eq(schema.sponsors.airtableId, airtableId),
+          });
+
+          const tier = (fields['Sponsor Level'] || 'bronze').toLowerCase();
+          const sponsorData = {
+            airtableId,
+            name: fields['Sponsor Name'] || '',
+            description: fields['Sponsor Bio'] || null,
+            tier,
+            logo: fields.LogoGraphic?.[0]?.url || null,
+            website: fields.Companylink || null,
+          };
+
+          if (existingSponsor) {
+            await app.db
+              .update(schema.sponsors)
+              .set(sponsorData)
+              .where(eq(schema.sponsors.id, existingSponsor.id));
+            sponsorsUpdated++;
+            app.logger.debug({ sponsorId: existingSponsor.id }, 'Sponsor updated');
+          } else {
+            const newSponsor = await app.db
+              .insert(schema.sponsors)
+              .values(sponsorData)
+              .returning();
+            sponsorsCreated++;
+            app.logger.debug({ sponsorId: newSponsor[0].id }, 'Sponsor created');
+          }
+        }
+
+        app.logger.info(
+          { sponsorsCreated, sponsorsUpdated },
+          'Sponsors sync completed'
+        );
+
+        // Sync Ports
+        let portsCreated = 0;
+        let portsUpdated = 0;
+
+        const portRecords: any[] = [];
+        await new Promise<void>((resolve, reject) => {
+          base.table(AIRTABLE_PORTS_TABLE_ID)
+            .select()
+            .eachPage(
+              (pageRecords, fetchNextPage) => {
+                portRecords.push(...pageRecords);
+                fetchNextPage();
+              },
+              (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve();
+                }
+              }
+            );
+        });
+
+        app.logger.info({ recordCount: portRecords.length }, 'Retrieved port records from Airtable');
+
+        for (const record of portRecords) {
+          const fields = record.fields as any;
+          const airtableId = record.id;
+
+          const existingPort = await app.db.query.ports.findFirst({
+            where: eq(schema.ports.airtableId, airtableId),
+          });
+
+          const portData = {
+            airtableId,
+            name: fields['Port Name'] || '',
+            link: fields['Port Link'] || null,
+            logo: fields['Logo Graphic']?.[0]?.url || null,
+          };
+
+          if (existingPort) {
+            await app.db
+              .update(schema.ports)
+              .set({ ...portData, updatedAt: new Date() })
+              .where(eq(schema.ports.id, existingPort.id));
+            portsUpdated++;
+            app.logger.debug({ portId: existingPort.id }, 'Port updated');
+          } else {
+            const newPort = await app.db
+              .insert(schema.ports)
+              .values(portData)
+              .returning();
+            portsCreated++;
+            app.logger.debug({ portId: newPort[0].id }, 'Port created');
+          }
+        }
+
+        app.logger.info(
+          { portsCreated, portsUpdated },
+          'Ports sync completed'
+        );
+
+        app.logger.info(
+          { speakersCreated, speakersUpdated, sponsorsCreated, sponsorsUpdated, portsCreated, portsUpdated },
           'Airtable sync completed successfully'
         );
 
@@ -110,6 +244,10 @@ export function registerAdminRoutes(app: App) {
           message: 'Airtable sync completed successfully',
           speakersCreated,
           speakersUpdated,
+          sponsorsCreated,
+          sponsorsUpdated,
+          portsCreated,
+          portsUpdated,
         };
       } catch (error) {
         app.logger.error({ err: error }, 'Failed to sync Airtable');
@@ -1035,6 +1173,182 @@ export function registerAdminRoutes(app: App) {
         return { message: 'Sponsor deleted successfully' };
       } catch (error) {
         app.logger.error({ err: error, sponsorId: id }, 'Failed to delete sponsor');
+        throw error;
+      }
+    }
+  );
+
+  // POST /api/admin/ports - Create port
+  app.fastify.post(
+    '/api/admin/ports',
+    {
+      schema: {
+        description: 'Create a new port',
+        tags: ['admin'],
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            link: { type: 'string' },
+            logo: { type: 'string' },
+          },
+          required: ['name'],
+        },
+        response: {
+          201: {
+            type: 'object',
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const body = request.body as any;
+      app.logger.info({ name: body.name }, 'Creating port');
+
+      try {
+        const newPort = await app.db
+          .insert(schema.ports)
+          .values({
+            name: body.name,
+            link: body.link || null,
+            logo: body.logo || null,
+          })
+          .returning();
+
+        app.logger.info({ portId: newPort[0].id }, 'Port created successfully');
+        return reply.status(201).send(newPort[0]);
+      } catch (error) {
+        app.logger.error({ err: error, name: body.name }, 'Failed to create port');
+        throw error;
+      }
+    }
+  );
+
+  // PUT /api/admin/ports/:id - Update port
+  app.fastify.put(
+    '/api/admin/ports/:id',
+    {
+      schema: {
+        description: 'Update a port',
+        tags: ['admin'],
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            link: { type: 'string' },
+            logo: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const { id } = request.params as { id: string };
+      const body = request.body as any;
+      app.logger.info({ portId: id }, 'Updating port');
+
+      try {
+        const updateData: any = {};
+        if (body.name) updateData.name = body.name;
+        if (body.link !== undefined) updateData.link = body.link;
+        if (body.logo !== undefined) updateData.logo = body.logo;
+        updateData.updatedAt = new Date();
+
+        const updated = await app.db
+          .update(schema.ports)
+          .set(updateData)
+          .where(eq(schema.ports.id, id))
+          .returning();
+
+        if (updated.length === 0) {
+          app.logger.warn({ portId: id }, 'Port not found');
+          return reply.status(404).send({ error: 'Port not found' });
+        }
+
+        app.logger.info({ portId: id }, 'Port updated successfully');
+        return updated[0];
+      } catch (error) {
+        app.logger.error({ err: error, portId: id }, 'Failed to update port');
+        throw error;
+      }
+    }
+  );
+
+  // DELETE /api/admin/ports/:id - Delete port
+  app.fastify.delete(
+    '/api/admin/ports/:id',
+    {
+      schema: {
+        description: 'Delete a port',
+        tags: ['admin'],
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const { id } = request.params as { id: string };
+      app.logger.info({ portId: id }, 'Deleting port');
+
+      try {
+        const deleted = await app.db
+          .delete(schema.ports)
+          .where(eq(schema.ports.id, id))
+          .returning();
+
+        if (deleted.length === 0) {
+          app.logger.warn({ portId: id }, 'Port not found');
+          return reply.status(404).send({ error: 'Port not found' });
+        }
+
+        app.logger.info({ portId: id }, 'Port deleted successfully');
+        return { message: 'Port deleted successfully' };
+      } catch (error) {
+        app.logger.error({ err: error, portId: id }, 'Failed to delete port');
         throw error;
       }
     }

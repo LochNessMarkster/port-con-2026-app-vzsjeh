@@ -15,6 +15,13 @@
       "when": 1769786996813,
       "tag": "20260130152956_deep_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769986634375,
+      "tag": "20260201225714_harsh_silver_sable",
+      "breakpoints": true
     }
   ]
 }

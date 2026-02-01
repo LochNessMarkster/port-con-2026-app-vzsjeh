@@ -5,7 +5,7 @@ import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
-const AIRTABLE_TABLE_ID = 'tblxn3Yie523MallN';
+const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
 const AIRTABLE_TOKEN_FALLBACK = 'patCsZvxAEJmBpJGu.8c98dc7c1d088a1b0ef2ef73a02e8d4b7cd4a8ce9a5f36d79ab0265c676c6f8c';
 
 export function register(app: App, fastify: FastifyInstance) {
@@ -92,7 +92,7 @@ export function register(app: App, fastify: FastifyInstance) {
 
         const records: any[] = [];
         await new Promise<void>((resolve, reject) => {
-          base.table(AIRTABLE_TABLE_ID)
+          base.table(AIRTABLE_SPEAKERS_TABLE_ID)
             .select()
             .eachPage(
               (pageRecords, fetchNextPage) => {
@@ -110,7 +110,7 @@ export function register(app: App, fastify: FastifyInstance) {
         });
 
         app.logger.info(
-          { tableId: AIRTABLE_TABLE_ID },
+          { tableId: AIRTABLE_SPEAKERS_TABLE_ID },
           'Fetching speakers from Airtable table'
         );
 
@@ -166,7 +166,7 @@ export function register(app: App, fastify: FastifyInstance) {
         });
 
         app.logger.info(
-          { count: speakers.length, tableId: AIRTABLE_TABLE_ID },
+          { count: speakers.length, tableId: AIRTABLE_SPEAKERS_TABLE_ID },
           'Speakers fetched from Airtable successfully'
         );
         return speakers;

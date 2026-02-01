@@ -8,6 +8,7 @@ import { register as registerSessions } from './routes/sessions.js';
 import { register as registerRooms } from './routes/rooms.js';
 import { register as registerExhibitors } from './routes/exhibitors.js';
 import { register as registerSponsors } from './routes/sponsors.js';
+import { register as registerPorts } from './routes/ports.js';
 import { registerAdminRoutes } from './routes/admin.js';
 
 // Combine schemas
@@ -29,6 +30,7 @@ registerSessions(app, app.fastify);
 registerRooms(app, app.fastify);
 registerExhibitors(app, app.fastify);
 registerSponsors(app, app.fastify);
+registerPorts(app, app.fastify);
 registerAdminRoutes(app);
 
 await app.run();
@@ -36,7 +38,9 @@ app.logger.info('Application running');
 app.logger.info(
   {
     airtableBase: 'appkKjciinTlnsbkd',
-    airtableTableId: 'tblxn3Yie523MallN',
+    airtableSpeakersTableId: 'tblNp1JZk4ARZZZlT',
+    airtableSponsorsTableId: 'tblgWrwRvpdcVG8sB',
+    airtablePortsTableId: 'tblrXosiVXKhJHYLu',
   },
-  'Airtable configuration - verify table ID is correct for Speakers table'
+  'Airtable configuration - verify table IDs are correct'
 );

@@ -60,6 +60,7 @@ export const exhibitors = pgTable('exhibitors', {
 // Sponsors table
 export const sponsors = pgTable('sponsors', {
   id: uuid('id').primaryKey().defaultRandom(),
+  airtableId: text('airtable_id'),
   name: text('name').notNull(),
   description: text('description'),
   tier: varchar('tier', { length: 50 }).notNull(),
@@ -67,6 +68,17 @@ export const sponsors = pgTable('sponsors', {
   website: text('website'),
   displayOrder: integer('display_order').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Ports table
+export const ports = pgTable('ports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  airtableId: text('airtable_id').unique(),
+  name: text('name').notNull(),
+  link: text('link'),
+  logo: text('logo'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Relations
