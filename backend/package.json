@@ -21,9 +21,11 @@
     "@specific-dev/framework": "1.20.2",
     "airtable": "^0.12.2",
     "better-auth": "1.4.5",
+    "cheerio": "^1.2.0",
     "commander": "^12.1.0",
     "drizzle-orm": "^0.44.7",
     "fastify": "^5.2.1",
+    "node-fetch": "^3.3.2",
     "pino-pretty": "^13.1.2",
     "postgres": "^3.4.5"
   },

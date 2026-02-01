@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import Airtable from 'airtable';
 import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
+import { scrapeSchedule } from '../utils/schedule-scraper.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
 const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
@@ -252,6 +253,73 @@ export function registerAdminRoutes(app: App) {
       } catch (error) {
         app.logger.error({ err: error }, 'Failed to sync Airtable');
         return reply.status(500).send({ error: 'Failed to sync Airtable' });
+      }
+    }
+  );
+
+  // GET /api/admin/scrape-schedule - Scrape schedule from conference agenda page
+  app.fastify.get(
+    '/api/admin/scrape-schedule',
+    {
+      schema: {
+        description: 'Scrape conference schedule from agenda page',
+        tags: ['admin'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              sessions: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    description: { type: ['string', 'null'] },
+                    startTime: { type: 'string' },
+                    endTime: { type: 'string' },
+                    type: { type: ['string', 'null'] },
+                    track: { type: ['string', 'null'] },
+                    speakers: { type: 'array', items: { type: 'string' } },
+                    room: { type: ['string', 'null'] },
+                  },
+                },
+              },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info('Starting schedule scrape from conference agenda page');
+
+      try {
+        const sessions = await scrapeSchedule();
+
+        app.logger.info(
+          { sessionCount: sessions.length },
+          'Schedule scraped successfully from conference website'
+        );
+
+        return {
+          sessions,
+        };
+      } catch (error) {
+        app.logger.error(
+          { err: error, message: error instanceof Error ? error.message : 'Unknown error' },
+          'Failed to scrape schedule'
+        );
+        return reply.status(500).send({
+          error: `Failed to scrape schedule: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
       }
     }
   );
