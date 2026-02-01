@@ -75,13 +75,13 @@ export function registerAdminRoutes(app: App) {
 
           const speakerData = {
             airtableId,
-            name: fields.Name || '',
-            title: fields.Title || null,
-            company: fields.Company || null,
+            name: fields['Speaker Name'] || '',
+            title: fields['Speaker Title'] || null,
+            company: null,
             bio: fields.Bio || null,
             photo: fields.Photo?.[0]?.url || null,
-            speakingTopic: fields['Speaking Topic'] || fields.SpeakingTopic || null,
-            synopsis: fields.Synopsis || fields['Synopsis of Speaking Topic'] || null,
+            speakingTopic: fields['Speaking Topic'] || null,
+            synopsis: fields['Synopsis of speaking topic'] || null,
           };
 
           if (existingSpeaker) {
