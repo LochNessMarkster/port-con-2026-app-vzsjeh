@@ -39,7 +39,7 @@ interface FloatingTabBarProps {
 
 export default function FloatingTabBar({
   tabs,
-  containerWidth = screenWidth / 2.5,
+  containerWidth = Math.min(screenWidth - 40, 500),
   borderRadius = 35,
   bottomMargin
 }: FloatingTabBarProps) {
@@ -244,13 +244,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 60,
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
+    gap: 4,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   tabContent: {
     alignItems: 'center',

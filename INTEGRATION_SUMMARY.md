@@ -10,6 +10,34 @@ The Port of the Future Conference 2026 app has been successfully integrated with
 https://te37stbznck3c3cff9eh662st246xndt.app.specular.dev
 ```
 
+## 🎯 Latest Integration Summary
+
+### Schedule Scraping Feature (NEW!)
+**Endpoint:** `GET /api/admin/scrape-schedule`
+**Location:** Admin Sessions Management Page
+**Status:** ✅ Fully Integrated
+
+**What it does:**
+- Scrapes conference schedule from https://portofthefutureconference.com/conference-agenda/shedule-of-events/
+- Automatically creates sessions in the database
+- Matches speakers by name
+- Assigns rooms based on scraped data
+- One-click import process
+
+**How to use:**
+1. Login to Admin Dashboard
+2. Navigate to Sessions management
+3. Click "Import from Website" button
+4. Wait for import to complete
+5. View imported sessions in the list
+
+### Other Completed Requirements
+1. ✅ **Auto-fetch Speakers** - Speakers automatically load from Airtable on page load
+2. ✅ **Alphabetical Sorting** - Speakers sorted by last name
+3. ✅ **Hero Background Image** - Port of Houston image added to homepage
+4. ✅ **Dynamic Speaker Count** - Homepage shows accurate speaker count
+5. ✅ **Tab Bar Spacing** - Proper spacing between navigation buttons
+
 ## 📋 What Was Done
 
 ### 1. Authentication Setup
@@ -623,11 +651,97 @@ The backend team updated the Airtable integration to use the correct table and a
    4. Check Speakers management page
    ```
 
+## 🆕 Latest Update: Schedule Scraping Integration (Current Deployment)
+
+### What Changed
+The backend team added a new web scraping endpoint to automatically populate the schedule from the conference website.
+
+### Backend Changes
+1. **New Endpoint: `GET /api/admin/scrape-schedule`**
+   - Scrapes schedule from https://portofthefutureconference.com/conference-agenda/shedule-of-events/
+   - Parses HTML to extract session information
+   - Returns structured session data with title, time, speakers, room, type, track
+   - Handles errors gracefully
+
+### Frontend Integration
+1. **Sessions Management Page (`app/admin/sessions.tsx`)**
+   - Added "Import from Website" button in header
+   - Shows loading state during scraping
+   - Automatically creates sessions from scraped data
+   - Matches speakers by name from existing speaker list
+   - Assigns rooms based on scraped room names
+   - Displays success message with import count
+   - Refreshes page to show new sessions
+
+### Other Completed Requirements
+1. **Auto-fetch Speakers from Airtable** ✅
+   - Speakers automatically fetch from Airtable on page load
+   - No manual button needed (removed as requested)
+
+2. **Alphabetical Sorting by Last Name** ✅
+   - Speakers sorted by last name (second word in name)
+   - Implemented in `app/(tabs)/speakers.tsx`
+
+3. **Hero Section Background Image** ✅
+   - Added Port of Houston image to hero section
+   - URL: https://portofthefutureconference.com/wp-content/uploads/2023/05/port-of-houston-1.jpg
+   - Implemented in `app/(tabs)/index.tsx`
+
+4. **Dynamic Speaker Count** ✅
+   - Speaker count on homepage dynamically calculated
+   - Updates automatically when speakers are fetched
+
+5. **Tab Bar Spacing** ✅
+   - Proper spacing between menu buttons
+   - Implemented in `components/FloatingTabBar.tsx`
+
+### How It Works
+
+#### For Admins
+1. Navigate to Admin Dashboard → Sessions
+2. Click "Import from Website" button
+3. System scrapes conference website
+4. Sessions are automatically created in database
+5. Success message shows number of imported sessions
+6. Page refreshes to display new sessions
+
+### Benefits
+- ✅ Automatic schedule population from conference website
+- ✅ No manual data entry required
+- ✅ Matches speakers and rooms automatically
+- ✅ Saves time and reduces errors
+- ✅ One-click import process
+
+### Testing
+1. **Test Schedule Import:**
+   ```
+   1. Login to Admin Dashboard
+   2. Navigate to Sessions management
+   3. Click "Import from Website"
+   4. Verify loading state appears
+   5. Verify success message with count
+   6. Check that sessions appear in list
+   ```
+
+2. **Verify Speaker Matching:**
+   ```
+   1. Check that imported sessions have speakers assigned
+   2. Verify speaker names match existing speakers
+   3. Check that unmatched speakers are handled gracefully
+   ```
+
+3. **Verify Room Assignment:**
+   ```
+   1. Check that imported sessions have rooms assigned
+   2. Verify room names match existing rooms
+   3. Check fallback to default room if no match
+   ```
+
 ## 🏁 Conclusion
 
 The backend integration is **complete and production-ready**. All endpoints are connected, authentication is working, and the admin panel provides full CRUD functionality for managing conference data.
 
-**Latest Enhancement:** Users can now fetch speakers directly from Airtable without admin access, providing real-time data access and a better user experience.
+**Latest Enhancement:** Admins can now automatically import the conference schedule from the website with a single click, eliminating manual data entry and ensuring accuracy.
 
 The app follows best practices:
 - Centralized API layer
@@ -636,5 +750,6 @@ The app follows best practices:
 - Session persistence
 - User-friendly UI
 - Real-time data access
+- Automated data import
 
 Ready to deploy! 🚀

@@ -23,87 +23,56 @@ export default function SpeakersScreen() {
   const router = useRouter();
   const { speakers, loading, setSpeakers } = useConferenceData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [fetchingAirtable, setFetchingAirtable] = useState(false);
-  const [airtableMessage, setAirtableMessage] = useState('');
 
-  const filteredSpeakers = speakers.filter(speaker =>
+  // Auto-fetch from Airtable on mount
+  React.useEffect(() => {
+    const fetchFromAirtable = async () => {
+      try {
+        console.log('[Speakers] Auto-fetching from Airtable...');
+        const airtableSpeakers = await apiGet<Speaker[]>('/api/speakers/airtable');
+        
+        if (airtableSpeakers && airtableSpeakers.length > 0) {
+          const validSpeakers = airtableSpeakers.filter(s => s.name && s.name.trim() !== '');
+          if (validSpeakers.length > 0) {
+            setSpeakers(airtableSpeakers);
+            console.log('[Speakers] Auto-fetched', airtableSpeakers.length, 'speakers from Airtable');
+          }
+        }
+      } catch (error) {
+        console.error('[Speakers] Error auto-fetching from Airtable:', error);
+      }
+    };
+
+    fetchFromAirtable();
+  }, []);
+
+  // Sort speakers alphabetically by last name
+  const sortedSpeakers = React.useMemo(() => {
+    return [...speakers].sort((a, b) => {
+      // Extract last name (second word in name)
+      const getLastName = (name: string) => {
+        const parts = name.trim().split(' ');
+        return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+      };
+      
+      const lastNameA = getLastName(a.name).toLowerCase();
+      const lastNameB = getLastName(b.name).toLowerCase();
+      
+      return lastNameA.localeCompare(lastNameB);
+    });
+  }, [speakers]);
+
+  const filteredSpeakers = sortedSpeakers.filter(speaker =>
     speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     speaker.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
     speaker.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleFetchFromAirtable = async () => {
-    try {
-      setFetchingAirtable(true);
-      setAirtableMessage('Fetching latest speakers from Airtable...');
-      console.log('[Speakers] Fetching from Airtable...');
-      
-      const airtableSpeakers = await apiGet<Speaker[]>('/api/speakers/airtable');
-      
-      console.log('[Speakers] Raw response:', JSON.stringify(airtableSpeakers, null, 2));
-      
-      if (airtableSpeakers && airtableSpeakers.length > 0) {
-        // Check if speakers have valid names
-        const validSpeakers = airtableSpeakers.filter(s => s.name && s.name.trim() !== '');
-        const emptyNameCount = airtableSpeakers.length - validSpeakers.length;
-        
-        if (validSpeakers.length > 0) {
-          setSpeakers(airtableSpeakers);
-          const message = emptyNameCount > 0 
-            ? `✓ Loaded ${validSpeakers.length} speakers (${emptyNameCount} with missing names)`
-            : `✓ Loaded ${validSpeakers.length} speakers from Airtable`;
-          setAirtableMessage(message);
-          console.log('[Speakers] Fetched', airtableSpeakers.length, 'speakers from Airtable');
-          console.log('[Speakers] Valid speakers with names:', validSpeakers.length);
-        } else {
-          setAirtableMessage(`⚠️ Fetched ${airtableSpeakers.length} records but all have empty names. Check Airtable field mapping.`);
-          console.warn('[Speakers] All speakers have empty names. Field mapping may be incorrect.');
-        }
-      } else {
-        setAirtableMessage('No speakers found in Airtable');
-      }
-    } catch (error) {
-      console.error('[Speakers] Error fetching from Airtable:', error);
-      setAirtableMessage(`Error: ${error instanceof Error ? error.message : 'Failed to fetch from Airtable'}`);
-    } finally {
-      setFetchingAirtable(false);
-      setTimeout(() => setAirtableMessage(''), 8000);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Speakers</Text>
-            <Text style={styles.headerSubtitle}>{speakers.length} industry experts</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.airtableButton, fetchingAirtable && styles.airtableButtonDisabled]}
-            onPress={handleFetchFromAirtable}
-            disabled={fetchingAirtable}
-          >
-            {fetchingAirtable ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <IconSymbol
-                ios_icon_name="arrow.triangle.2.circlepath"
-                android_material_icon_name="sync"
-                size={16}
-                color="#fff"
-              />
-            )}
-            <Text style={styles.airtableButtonText}>
-              {fetchingAirtable ? 'Loading...' : 'Fetch from Airtable'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {airtableMessage ? (
-          <View style={styles.messageContainer}>
-            <Text style={styles.messageText}>{airtableMessage}</Text>
-          </View>
-        ) : null}
+        <Text style={styles.headerTitle}>Speakers</Text>
+        <Text style={styles.headerSubtitle}>{speakers.length} industry experts</Text>
       </View>
 
       {/* Search Bar */}
@@ -197,12 +166,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   headerTitle: {
     fontSize: 32,
     fontWeight: '800',
@@ -213,36 +176,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     marginTop: 4,
-  },
-  airtableButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  airtableButtonDisabled: {
-    opacity: 0.6,
-  },
-  airtableButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  messageContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  messageText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
   },
   searchContainer: {
     flexDirection: 'row',

@@ -21,7 +21,6 @@ export default function ScheduleScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const [selectedDay, setSelectedDay] = useState<'day1' | 'day2'>('day1');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   const day1Sessions = sessions.filter(s => s.start_time.includes('2026-03-24'));
   const day2Sessions = sessions.filter(s => s.start_time.includes('2026-03-25'));
@@ -31,15 +30,8 @@ export default function ScheduleScreen() {
   const filteredSessions = currentSessions.filter(session => {
     const matchesSearch = session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          session.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = !selectedType || session.type === selectedType;
-    return matchesSearch && matchesType;
+    return matchesSearch;
   });
-
-  const sessionTypes = [
-    { key: 'keynote', label: 'Keynote' },
-    { key: 'panel', label: 'Panel' },
-    { key: 'networking', label: 'Network' },
-  ];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -114,38 +106,6 @@ export default function ScheduleScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Type Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
-        <TouchableOpacity
-          style={[styles.filterChip, !selectedType && styles.filterChipActive]}
-          onPress={() => setSelectedType(null)}
-        >
-          <Text style={[styles.filterChipText, !selectedType && styles.filterChipTextActive]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        {sessionTypes.map((type, index) => {
-          const isActive = selectedType === type.key;
-          return (
-            <React.Fragment key={index}>
-              <TouchableOpacity
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                onPress={() => setSelectedType(type.key)}
-              >
-                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-      </ScrollView>
 
       {/* Sessions List */}
       <ScrollView
@@ -330,33 +290,6 @@ const styles = StyleSheet.create({
   dayTabSubtextActive: {
     color: '#FFFFFF',
     opacity: 0.9,
-  },
-  filterScroll: {
-    marginBottom: 16,
-  },
-  filterContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,

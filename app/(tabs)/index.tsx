@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ImageBackground,
   Platform,
   Linking,
 } from 'react-native';
@@ -76,37 +77,43 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
-        <LinearGradient
-          colors={[colors.primary, colors.secondary]}
+        <ImageBackground
+          source={{ uri: 'https://portofthefutureconference.com/wp-content/uploads/2023/05/port-of-houston-1.jpg' }}
           style={styles.hero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          resizeMode="cover"
         >
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>Port of the Future</Text>
-            <Text style={styles.heroSubtitle}>Conference 2026</Text>
-            <View style={styles.heroDetails}>
-              <View style={styles.heroDetailItem}>
-                <IconSymbol
-                  ios_icon_name="calendar"
-                  android_material_icon_name="calendar-today"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.heroDetailText}>March 24–25, 2026</Text>
-              </View>
-              <View style={styles.heroDetailItem}>
-                <IconSymbol
-                  ios_icon_name="location"
-                  android_material_icon_name="place"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.heroDetailText}>Houston, TX</Text>
+          <LinearGradient
+            colors={['rgba(174, 43, 53, 0.85)', 'rgba(15, 76, 129, 0.85)']}
+            style={styles.heroOverlay}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitle}>Port of the Future</Text>
+              <Text style={styles.heroSubtitle}>Conference 2026</Text>
+              <View style={styles.heroDetails}>
+                <View style={styles.heroDetailItem}>
+                  <IconSymbol
+                    ios_icon_name="calendar"
+                    android_material_icon_name="calendar-today"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.heroDetailText}>March 24–25, 2026</Text>
+                </View>
+                <View style={styles.heroDetailItem}>
+                  <IconSymbol
+                    ios_icon_name="location"
+                    android_material_icon_name="place"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.heroDetailText}>Houston, TX</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </ImageBackground>
 
         {/* Navigation Grid */}
         <View style={styles.section}>
@@ -322,9 +329,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   hero: {
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  heroOverlay: {
     paddingVertical: 40,
     paddingHorizontal: 20,
-    marginBottom: 24,
   },
   heroContent: {
     alignItems: 'center',

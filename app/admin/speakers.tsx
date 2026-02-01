@@ -30,6 +30,10 @@ function SpeakersManagementContent() {
     visible: false,
     speaker: null,
   });
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: '',
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -113,7 +117,10 @@ function SpeakersManagementContent() {
       fetchSpeakers();
     } catch (error) {
       console.error('[Admin] Error saving speaker:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save speaker');
+      setErrorModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to save speaker',
+      });
     }
   };
 
@@ -132,7 +139,10 @@ function SpeakersManagementContent() {
       fetchSpeakers();
     } catch (error) {
       console.error('[Admin] Error deleting speaker:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete speaker');
+      setErrorModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to delete speaker',
+      });
     }
   };
 
@@ -358,6 +368,16 @@ function SpeakersManagementContent() {
         cancelText="Cancel"
         onConfirm={confirmDelete}
         onClose={() => setDeleteModal({ visible: false, speaker: null })}
+      />
+
+      <ConfirmModal
+        visible={errorModal.visible}
+        title="Error"
+        message={errorModal.message}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorModal({ visible: false, message: '' })}
+        onClose={() => setErrorModal({ visible: false, message: '' })}
       />
     </SafeAreaView>
   );

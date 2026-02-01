@@ -31,6 +31,16 @@ function SessionsManagementContent() {
     visible: false,
     session: null,
   });
+  const [scraping, setScraping] = useState(false);
+  const [scrapeResultModal, setScrapeResultModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: '',
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -123,7 +133,10 @@ function SessionsManagementContent() {
       fetchData();
     } catch (error) {
       console.error('[Admin] Error saving session:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save session');
+      setErrorModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to save session',
+      });
     }
   };
 
@@ -142,7 +155,90 @@ function SessionsManagementContent() {
       fetchData();
     } catch (error) {
       console.error('[Admin] Error deleting session:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete session');
+      setErrorModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to delete session',
+      });
+    }
+  };
+
+  const handleScrapeSchedule = async () => {
+    try {
+      setScraping(true);
+      console.log('[Admin] Scraping schedule from conference website...');
+      
+      const response = await apiGet<{ sessions: any[] }>('/api/admin/scrape-schedule');
+      
+      if (response.sessions && response.sessions.length > 0) {
+        console.log('[Admin] Scraped', response.sessions.length, 'sessions');
+        
+        // Create sessions from scraped data
+        for (const scrapedSession of response.sessions) {
+          try {
+            // Find or create room
+            let roomId = rooms[0]?.id || '';
+            if (scrapedSession.room) {
+              const existingRoom = rooms.find(r => 
+                r.name.toLowerCase().includes(scrapedSession.room.toLowerCase())
+              );
+              if (existingRoom) {
+                roomId = existingRoom.id;
+              }
+            }
+
+            // Find speakers by name
+            const speakerIds: string[] = [];
+            if (scrapedSession.speakers && scrapedSession.speakers.length > 0) {
+              for (const speakerName of scrapedSession.speakers) {
+                const speaker = speakers.find(s => 
+                  s.name.toLowerCase().includes(speakerName.toLowerCase()) ||
+                  speakerName.toLowerCase().includes(s.name.toLowerCase())
+                );
+                if (speaker) {
+                  speakerIds.push(speaker.id);
+                }
+              }
+            }
+
+            const payload = {
+              title: scrapedSession.title,
+              description: scrapedSession.description || '',
+              startTime: scrapedSession.startTime,
+              endTime: scrapedSession.endTime,
+              roomId: roomId,
+              type: scrapedSession.type || 'panel',
+              track: scrapedSession.track || '',
+              speakerIds: speakerIds,
+            };
+
+            await authenticatedPost('/api/admin/sessions', payload);
+          } catch (error) {
+            console.error('[Admin] Error creating session:', scrapedSession.title, error);
+          }
+        }
+
+        setScrapeResultModal({
+          visible: true,
+          message: `Successfully imported ${response.sessions.length} sessions from the conference website!`,
+          type: 'success',
+        });
+        fetchData();
+      } else {
+        setScrapeResultModal({
+          visible: true,
+          message: 'No sessions found on the conference website.',
+          type: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('[Admin] Error scraping schedule:', error);
+      setScrapeResultModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to scrape schedule',
+        type: 'error',
+      });
+    } finally {
+      setScraping(false);
     }
   };
 
@@ -358,15 +454,36 @@ function SessionsManagementContent() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Sessions</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
-          <IconSymbol
-            ios_icon_name="add"
-            android_material_icon_name="add"
-            size={20}
-            color="#FFFFFF"
-          />
-          <Text style={styles.addButtonText}>Add Session</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.scrapeButton} 
+            onPress={handleScrapeSchedule}
+            disabled={scraping}
+          >
+            {scraping ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <IconSymbol
+                  ios_icon_name="cloud-download"
+                  android_material_icon_name="cloud-download"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.scrapeButtonText}>Import from Website</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+            <IconSymbol
+              ios_icon_name="add"
+              android_material_icon_name="add"
+              size={20}
+              color="#FFFFFF"
+            />
+            <Text style={styles.addButtonText}>Add Session</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -441,6 +558,26 @@ function SessionsManagementContent() {
         onConfirm={confirmDelete}
         onClose={() => setDeleteModal({ visible: false, session: null })}
       />
+
+      <ConfirmModal
+        visible={scrapeResultModal.visible}
+        title={scrapeResultModal.type === 'success' ? 'Import Successful' : 'Import Failed'}
+        message={scrapeResultModal.message}
+        type={scrapeResultModal.type === 'success' ? 'success' : 'error'}
+        confirmText="OK"
+        onConfirm={() => setScrapeResultModal({ visible: false, message: '', type: 'success' })}
+        onClose={() => setScrapeResultModal({ visible: false, message: '', type: 'success' })}
+      />
+
+      <ConfirmModal
+        visible={errorModal.visible}
+        title="Error"
+        message={errorModal.message}
+        type="error"
+        confirmText="OK"
+        onConfirm={() => setErrorModal({ visible: false, message: '' })}
+        onClose={() => setErrorModal({ visible: false, message: '' })}
+      />
     </SafeAreaView>
   );
 }
@@ -487,6 +624,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: colors.text,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  scrapeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  scrapeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
