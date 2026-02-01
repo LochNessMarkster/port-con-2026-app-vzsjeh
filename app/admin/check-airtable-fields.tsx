@@ -176,7 +176,7 @@ function CheckAirtableFieldsContent() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Expected Field Mapping</Text>
           <Text style={styles.text}>
-            The backend expects these Airtable field names:
+            The backend now expects these EXACT Airtable field names:
           </Text>
           <View style={styles.mappingTable}>
             <View style={styles.mappingRow}>
@@ -184,16 +184,20 @@ function CheckAirtableFieldsContent() {
               <Text style={styles.mappingHeader}>Maps To</Text>
             </View>
             <View style={styles.mappingRow}>
-              <Text style={styles.mappingCell}>Name</Text>
+              <Text style={styles.mappingCell}>Speaker Name</Text>
               <Text style={styles.mappingCell}>speaker.name</Text>
             </View>
             <View style={styles.mappingRow}>
-              <Text style={styles.mappingCell}>Title</Text>
+              <Text style={styles.mappingCell}>Speaker Title</Text>
               <Text style={styles.mappingCell}>speaker.title</Text>
             </View>
             <View style={styles.mappingRow}>
-              <Text style={styles.mappingCell}>Company</Text>
-              <Text style={styles.mappingCell}>speaker.company</Text>
+              <Text style={styles.mappingCell}>Speaking Topic</Text>
+              <Text style={styles.mappingCell}>speaker.speakingTopic</Text>
+            </View>
+            <View style={styles.mappingRow}>
+              <Text style={styles.mappingCell}>Synopsis of speaking topic</Text>
+              <Text style={styles.mappingCell}>speaker.synopsis</Text>
             </View>
             <View style={styles.mappingRow}>
               <Text style={styles.mappingCell}>Bio</Text>
@@ -203,15 +207,10 @@ function CheckAirtableFieldsContent() {
               <Text style={styles.mappingCell}>Photo (attachment)</Text>
               <Text style={styles.mappingCell}>speaker.photo</Text>
             </View>
-            <View style={styles.mappingRow}>
-              <Text style={styles.mappingCell}>Speaking Topic</Text>
-              <Text style={styles.mappingCell}>speaker.speakingTopic</Text>
-            </View>
-            <View style={styles.mappingRow}>
-              <Text style={styles.mappingCell}>Synopsis</Text>
-              <Text style={styles.mappingCell}>speaker.synopsis</Text>
-            </View>
           </View>
+          <Text style={[styles.text, { marginTop: 12 }]}>
+            Note: The "Company" field is not used since it doesn't exist in your Airtable.
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -223,20 +222,21 @@ function CheckAirtableFieldsContent() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How to Fix Field Mapping Issues</Text>
+          <Text style={styles.sectionTitle}>How to Verify the Mapping</Text>
           <Text style={styles.text}>
             1. Click "Check Airtable Fields" above to see your current field names{'\n'}
             2. Compare the "Field Names Found" with the "Expected Field Mapping"{'\n'}
-            3. If they don't match, you have two options:{'\n'}
+            3. The field names should match exactly (case-sensitive){'\n'}
             {'\n'}
-            Option A: Rename fields in Airtable{'\n'}
-            • Go to your Airtable base{'\n'}
-            • Rename the column headers to match the expected names{'\n'}
-            • For example, if you have "Speaker Name", rename it to "Name"{'\n'}
+            Your Airtable columns should be:{'\n'}
+            • Speaker Name{'\n'}
+            • Speaker Title{'\n'}
+            • Speaking Topic{'\n'}
+            • Synopsis of speaking topic{'\n'}
+            • Bio{'\n'}
+            • Photo{'\n'}
             {'\n'}
-            Option B: Update the backend code{'\n'}
-            • The backend already tries multiple field name variations{'\n'}
-            • If your field names are different, contact support to add them
+            If they match, the sync should work correctly!
           </Text>
         </View>
       </ScrollView>

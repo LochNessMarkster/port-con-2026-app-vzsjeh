@@ -17,37 +17,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 function AirtableInfoContent() {
   const router = useRouter();
 
-  const infoSections = [
-    {
-      title: 'What is Airtable Integration?',
-      content: 'The Airtable integration allows you to sync conference data (speakers, sessions, etc.) from your Airtable database directly into the app. This ensures that any updates made in Airtable are reflected in the mobile app.',
-    },
-    {
-      title: 'Airtable Configuration',
-      content: 'Base ID: appkKjciinTlnsbkd\nTable ID: tblxn3Yie523MallN\n\nThese IDs are pre-configured in the backend and connect to your Port of the Future Conference 2026 Airtable base.',
-    },
-    {
-      title: 'Two Ways to Access Airtable Data',
-      content: '1. Admin Sync (Database): Use the "Sync to Database" button in the Admin Dashboard to permanently store speakers in the app\'s database. This is recommended for production use.\n\n2. Direct Fetch (Real-time): Users can click "Fetch from Airtable" on the Speakers page to see the latest data directly from Airtable without admin access. This is useful for testing and seeing immediate updates.',
-    },
-    {
-      title: 'How to Sync Data to Database',
-      content: '1. Navigate to the Admin Dashboard\n2. Click the "Sync to Database" button in the Airtable Integration section\n3. Wait for the sync to complete\n4. Check the success message to confirm data was synced\n5. View updated data in the app',
-    },
-    {
-      title: 'What Data Gets Synced?',
-      content: '• Speakers: Names, titles, companies, bios, photos, speaking topics, and synopses\n• Field Mapping:\n  - Name or Speaker Name → name\n  - Title or Speaker Title → title\n  - Company → company\n  - Bio → bio\n  - Photo (attachment) → photo (first attachment URL)\n  - Speaking Topic or SpeakingTopic → speakingTopic\n  - Synopsis or Synopsis of Speaking Topic → synopsis',
-    },
-    {
-      title: 'Sync Frequency',
-      content: 'You can sync data as often as needed. It\'s recommended to sync:\n• After adding new speakers or sessions in Airtable\n• Before major conference announcements\n• Daily during the week leading up to the conference\n• Immediately before the conference starts',
-    },
-    {
-      title: 'Troubleshooting',
-      content: 'If sync fails:\n• Check that your Airtable API key is configured correctly in the backend\n• Verify the Base ID and Table ID are correct\n• Ensure your Airtable fields match the expected format (Name/Speaker Name, Title/Speaker Title, Company, Bio, Photo, Speaking Topic, Synopsis)\n• Check the backend logs for detailed error messages\n• Try using the "Fetch from Airtable" button on the Speakers page to test the connection\n• Contact support if issues persist',
-    },
-  ];
-
   if (Platform.OS !== 'web') {
     return (
       <SafeAreaView style={styles.container}>
@@ -82,65 +51,144 @@ function AirtableInfoContent() {
           />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Airtable Integration Guide</Text>
+        <Text style={styles.headerTitle}>Airtable Configuration</Text>
       </View>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.introCard}>
-          <IconSymbol
-            ios_icon_name="info"
-            android_material_icon_name="info"
-            size={32}
-            color={colors.primary}
-          />
-          <Text style={styles.introTitle}>About Airtable Integration</Text>
-          <Text style={styles.introText}>
-            This guide explains how to use the Airtable integration to keep your conference data up-to-date.
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋 Required Airtable Columns</Text>
+          <Text style={styles.text}>
+            Your Airtable base must have these exact column names (case-sensitive):
+          </Text>
+          
+          <View style={styles.columnList}>
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>1.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Speaker Name</Text>
+                <Text style={styles.columnType}>Type: Single line text</Text>
+                <Text style={styles.columnDescription}>The full name of the speaker</Text>
+              </View>
+            </View>
+
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>2.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Speaker Title</Text>
+                <Text style={styles.columnType}>Type: Single line text</Text>
+                <Text style={styles.columnDescription}>Job title or role (e.g., "CEO", "Director of Operations")</Text>
+              </View>
+            </View>
+
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>3.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Speaking Topic</Text>
+                <Text style={styles.columnType}>Type: Single line text or Long text</Text>
+                <Text style={styles.columnDescription}>The title or topic of their presentation</Text>
+              </View>
+            </View>
+
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>4.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Synopsis of speaking topic</Text>
+                <Text style={styles.columnType}>Type: Long text</Text>
+                <Text style={styles.columnDescription}>A brief description or summary of the speaking topic</Text>
+              </View>
+            </View>
+
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>5.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Bio</Text>
+                <Text style={styles.columnType}>Type: Long text</Text>
+                <Text style={styles.columnDescription}>Speaker biography or background information</Text>
+              </View>
+            </View>
+
+            <View style={styles.columnItem}>
+              <Text style={styles.columnNumber}>6.</Text>
+              <View style={styles.columnDetails}>
+                <Text style={styles.columnName}>Photo</Text>
+                <Text style={styles.columnType}>Type: Attachment</Text>
+                <Text style={styles.columnDescription}>Speaker headshot or profile photo (the first attachment will be used)</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔗 Connection Details</Text>
+          <View style={styles.detailsBox}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Base ID:</Text>
+              <Text style={styles.detailValue}>appkKjciinTlnsbkd</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Table ID:</Text>
+              <Text style={styles.detailValue}>tblxn3Yie523MallN</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>✅ How to Sync</Text>
+          <Text style={styles.text}>
+            1. Make sure your Airtable has all the required columns listed above{'\n'}
+            2. Fill in the speaker data in Airtable{'\n'}
+            3. Go to the Admin Dashboard{'\n'}
+            4. Click "Sync from Airtable"{'\n'}
+            5. The system will fetch all records and create/update speakers in the database
           </Text>
         </View>
 
-        {infoSections.map((section, index) => (
-          <React.Fragment key={index}>
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <Text style={styles.sectionContent}>{section.content}</Text>
-            </View>
-          </React.Fragment>
-        ))}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔍 Troubleshooting</Text>
+          <Text style={styles.text}>
+            If the sync isn't working:{'\n'}
+            {'\n'}
+            1. Check that column names match EXACTLY (including spaces and capitalization){'\n'}
+            2. Use the "Check Airtable Fields" tool to see what field names are being detected{'\n'}
+            3. Make sure the Photo field is an Attachment type (not a URL field){'\n'}
+            4. Verify that at least the "Speaker Name" field has data{'\n'}
+            {'\n'}
+            Common mistakes:{'\n'}
+            • Using "Name" instead of "Speaker Name"{'\n'}
+            • Using "Title" instead of "Speaker Title"{'\n'}
+            • Using "Synopsis" instead of "Synopsis of speaking topic"{'\n'}
+            • Having extra spaces in column names
+          </Text>
+        </View>
 
-        <View style={styles.linkCard}>
-          <Text style={styles.linkTitle}>Quick Links</Text>
+        <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push('/admin/dashboard' as any)}
+            style={styles.primaryButton}
+            onPress={() => router.push('/admin/check-airtable-fields')}
           >
             <IconSymbol
-              ios_icon_name="home"
-              android_material_icon_name="home"
+              ios_icon_name="magnifyingglass"
+              android_material_icon_name="search"
               size={20}
-              color={colors.primary}
+              color="#fff"
             />
-            <Text style={styles.linkButtonText}>Go to Dashboard</Text>
+            <Text style={styles.primaryButtonText}>Check Field Mapping</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => {
-              // Open Airtable in new tab
-              if (Platform.OS === 'web') {
-                window.open('https://airtable.com/appkKjciinTlnsbkd/shrDhhVoXnWHC0oWj', '_blank');
-              }
-            }}
+            style={styles.secondaryButton}
+            onPress={() => router.push('/admin/dashboard')}
           >
             <IconSymbol
-              ios_icon_name="link"
-              android_material_icon_name="link"
+              ios_icon_name="arrow-back"
+              android_material_icon_name="arrow-back"
               size={20}
               color={colors.primary}
             />
-            <Text style={styles.linkButtonText}>Open Airtable</Text>
+            <Text style={styles.secondaryButtonText}>Back to Dashboard</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -191,80 +239,130 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
   },
-  introCard: {
+  section: {
+    marginBottom: 32,
+    padding: 20,
     backgroundColor: colors.card,
     borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  introTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  introText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  sectionCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
   },
-  sectionContent: {
-    fontSize: 14,
+  text: {
+    fontSize: 16,
     fontWeight: '400',
     color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 24,
   },
-  linkCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 24,
-    marginTop: 8,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: colors.border,
+  columnList: {
+    marginTop: 16,
+    gap: 16,
   },
-  linkTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  linkButton: {
+  columnItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    padding: 16,
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 12,
   },
-  linkButtonText: {
+  columnNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+    minWidth: 24,
+  },
+  columnDetails: {
+    flex: 1,
+    gap: 4,
+  },
+  columnName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  columnType: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  columnDescription: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  detailsBox: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    minWidth: 80,
+  },
+  detailValue: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  actionButtons: {
+    gap: 12,
+    marginTop: 16,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
   },
   mobileWarning: {
     flex: 1,
