@@ -10,15 +10,21 @@ import {
   TextInput,
   Linking,
   Platform,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useConferenceData } from '@/hooks/useConferenceData';
+import { useFavoriteExhibitors } from '@/hooks/useBookmarks';
+import { SkeletonLoader } from '@/components/ui/ConfirmModal';
 
 export default function ExhibitorsScreen() {
-  const { exhibitors, loading } = useConferenceData();
+  const { exhibitors, loading, refetch } = useConferenceData();
+  const { isFavorite, toggleFavorite, loading: favoritesLoading } = useFavoriteExhibitors();
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const filteredExhibitors = exhibitors.filter(exhibitor => {
     const matchesSearch = exhibitor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -29,6 +35,22 @@ export default function ExhibitorsScreen() {
   const openWebsite = (url?: string) => {
     if (url) {
       Linking.openURL(url);
+    }
+  };
+
+  const handleRefresh = async () => {
+    console.log('[Exhibitors] Pull to refresh triggered');
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const handleToggleFavorite = async (exhibitorId: string) => {
+    try {
+      console.log('[Exhibitors] Toggling favorite for exhibitor:', exhibitorId);
+      await toggleFavorite(exhibitorId);
+    } catch (error) {
+      console.error('[Exhibitors] Error toggling favorite:', error);
     }
   };
 
@@ -60,68 +82,127 @@ export default function ExhibitorsScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        {filteredExhibitors.map((exhibitor, index) => (
-          <React.Fragment key={index}>
-            <View style={styles.exhibitorCard}>
-              <View style={styles.exhibitorHeader}>
-                <Image
-                  source={{ uri: exhibitor.logo }}
-                  style={styles.exhibitorLogo}
-                  resizeMode="contain"
-                />
-                <View style={styles.boothBadge}>
-                  <Text style={styles.boothBadgeText}>Booth {exhibitor.booth_number}</Text>
+        {loading && !refreshing ? (
+          // Skeleton loaders
+          <>
+            {[1, 2, 3].map((_, index) => (
+              <React.Fragment key={index}>
+                <View style={styles.exhibitorCard}>
+                  <View style={styles.exhibitorHeader}>
+                    <SkeletonLoader width={80} height={80} borderRadius={8} />
+                    <SkeletonLoader width={100} height={32} borderRadius={8} />
+                  </View>
+                  <SkeletonLoader width="70%" height={24} style={{ marginBottom: 8 }} />
+                  <SkeletonLoader width={80} height={24} borderRadius={12} style={{ marginBottom: 12 }} />
+                  <SkeletonLoader width="100%" height={60} style={{ marginBottom: 16 }} />
+                  <View style={styles.exhibitorFooter}>
+                    <SkeletonLoader width={120} height={36} borderRadius={8} />
+                    <SkeletonLoader width={120} height={36} borderRadius={8} />
+                  </View>
                 </View>
-              </View>
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          <>
+            {filteredExhibitors.map((exhibitor, index) => {
+              const favorited = isFavorite(exhibitor.id);
+              
+              return (
+                <React.Fragment key={index}>
+                  <View style={styles.exhibitorCard}>
+                    <View style={styles.exhibitorHeader}>
+                      <Image
+                        source={{ uri: exhibitor.logo }}
+                        style={styles.exhibitorLogo}
+                        resizeMode="contain"
+                      />
+                      <View style={styles.headerRight}>
+                        <View style={styles.boothBadge}>
+                          <Text style={styles.boothBadgeText}>Booth {exhibitor.booth_number}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleToggleFavorite(exhibitor.id)}
+                          style={styles.favoriteButton}
+                          disabled={favoritesLoading}
+                        >
+                          {favoritesLoading ? (
+                            <ActivityIndicator size="small" color={colors.primary} />
+                          ) : (
+                            <IconSymbol
+                              ios_icon_name={favorited ? 'favorite' : 'favorite-border'}
+                              android_material_icon_name={favorited ? 'favorite' : 'favorite-border'}
+                              size={24}
+                              color={favorited ? colors.primary : colors.textSecondary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
-              <Text style={styles.exhibitorName}>{exhibitor.name}</Text>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{exhibitor.category}</Text>
-              </View>
-              <Text style={styles.exhibitorDescription}>{exhibitor.description}</Text>
+                    <Text style={styles.exhibitorName}>{exhibitor.name}</Text>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{exhibitor.category}</Text>
+                    </View>
+                    <Text style={styles.exhibitorDescription}>{exhibitor.description}</Text>
 
-              <View style={styles.exhibitorFooter}>
-                {exhibitor.website && (
-                  <TouchableOpacity
-                    style={styles.websiteButton}
-                    onPress={() => openWebsite(exhibitor.website)}
-                  >
-                    <IconSymbol
-                      ios_icon_name="link"
-                      android_material_icon_name="link"
-                      size={16}
-                      color={colors.secondary}
-                    />
-                    <Text style={styles.websiteButtonText}>Visit Website</Text>
-                  </TouchableOpacity>
-                )}
-                {exhibitor.map_x && exhibitor.map_y && (
-                  <TouchableOpacity style={styles.mapButton}>
-                    <IconSymbol
-                      ios_icon_name="map"
-                      android_material_icon_name="map"
-                      size={16}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.mapButtonText}>View on Map</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </React.Fragment>
-        ))}
+                    <View style={styles.exhibitorFooter}>
+                      <TouchableOpacity
+                        style={styles.visitBoothButton}
+                        onPress={() => {
+                          console.log('[Exhibitors] Visit Booth pressed for:', exhibitor.name);
+                          // Navigate to map or booth details
+                        }}
+                      >
+                        <IconSymbol
+                          ios_icon_name="store"
+                          android_material_icon_name="store"
+                          size={16}
+                          color="#FFFFFF"
+                        />
+                        <Text style={styles.visitBoothButtonText}>Visit Booth</Text>
+                      </TouchableOpacity>
+                      {exhibitor.website && (
+                        <TouchableOpacity
+                          style={styles.websiteButton}
+                          onPress={() => openWebsite(exhibitor.website)}
+                        >
+                          <IconSymbol
+                            ios_icon_name="link"
+                            android_material_icon_name="link"
+                            size={16}
+                            color={colors.secondary}
+                          />
+                          <Text style={styles.websiteButtonText}>Website</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </React.Fragment>
+              );
+            })}
 
-        {filteredExhibitors.length === 0 && (
-          <View style={styles.emptyState}>
-            <IconSymbol
-              ios_icon_name="search"
-              android_material_icon_name="search"
-              size={48}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.emptyStateText}>No exhibitors found</Text>
-          </View>
+            {filteredExhibitors.length === 0 && !loading && (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  ios_icon_name="search"
+                  android_material_icon_name="search"
+                  size={48}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.emptyStateText}>No exhibitors found</Text>
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 100 }} />
@@ -195,6 +276,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.background,
   },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   boothBadge: {
     backgroundColor: colors.primary,
     paddingHorizontal: 12,
@@ -205,6 +290,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  favoriteButton: {
+    padding: 4,
   },
   exhibitorName: {
     fontSize: 20,
@@ -236,12 +324,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  visitBoothButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  visitBoothButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   websiteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -251,22 +355,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.secondary,
-  },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  mapButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
   },
   emptyState: {
     alignItems: 'center',

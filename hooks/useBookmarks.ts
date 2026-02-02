@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePushNotifications } from './usePushNotifications';
+import { authenticatedGet, authenticatedPost, authenticatedDelete } from '@/utils/api';
 
 const BOOKMARKS_KEY = '@conference_bookmarks';
 
@@ -16,10 +17,8 @@ export function useBookmarks() {
 
   const loadBookmarks = async () => {
     try {
-      // TODO: Backend Integration - Fetch bookmarks from API
-      // const response = await fetch('/api/bookmarks');
-      // const data = await response.json();
-      
+      // Note: Session bookmarks are stored locally for now
+      // Future enhancement: Sync with backend API
       const stored = await AsyncStorage.getItem(BOOKMARKS_KEY);
       if (stored) {
         setBookmarkedSessions(new Set(JSON.parse(stored)));
@@ -45,8 +44,8 @@ export function useBookmarks() {
           // This will be handled by the backend
         }
         
-        // TODO: Backend Integration - Remove bookmark via API
-        // await fetch(`/api/bookmarks/${sessionId}`, { method: 'DELETE' });
+        // Note: Session bookmarks are stored locally for now
+        // Future enhancement: Sync with backend API
       } else {
         newBookmarks.add(sessionId);
         console.log('[Bookmarks] Added bookmark for session:', sessionId);
@@ -56,8 +55,8 @@ export function useBookmarks() {
           await scheduleNotification(sessionId, sessionTitle, sessionStartTime, 15);
         }
         
-        // TODO: Backend Integration - Add bookmark via API
-        // await fetch('/api/bookmarks', { method: 'POST', body: JSON.stringify({ sessionId }) });
+        // Note: Session bookmarks are stored locally for now
+        // Future enhancement: Sync with backend API
       }
       
       setBookmarkedSessions(newBookmarks);
@@ -76,5 +75,62 @@ export function useBookmarks() {
     toggleBookmark,
     isBookmarked,
     loading,
+  };
+}
+
+// Hook for managing favorite exhibitors
+export function useFavoriteExhibitors() {
+  const [favoriteExhibitors, setFavoriteExhibitors] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      console.log('[Favorites] Loading favorite exhibitors...');
+      const response = await authenticatedGet<{ exhibitorId: string }[]>('/api/favorites/exhibitors');
+      const favoriteIds = response.map(f => f.exhibitorId);
+      setFavoriteExhibitors(new Set(favoriteIds));
+      console.log('[Favorites] Loaded', favoriteIds.length, 'favorite exhibitors');
+      setLoading(false);
+    } catch (error) {
+      console.error('[Favorites] Error loading favorites:', error);
+      setLoading(false);
+    }
+  };
+
+  const toggleFavorite = async (exhibitorId: string) => {
+    try {
+      const newFavorites = new Set(favoriteExhibitors);
+      
+      if (newFavorites.has(exhibitorId)) {
+        newFavorites.delete(exhibitorId);
+        console.log('[Favorites] Removed favorite exhibitor:', exhibitorId);
+        await authenticatedDelete(`/api/favorites/exhibitors/${exhibitorId}`);
+      } else {
+        newFavorites.add(exhibitorId);
+        console.log('[Favorites] Added favorite exhibitor:', exhibitorId);
+        await authenticatedPost(`/api/favorites/exhibitors/${exhibitorId}`, {});
+      }
+      
+      setFavoriteExhibitors(newFavorites);
+    } catch (error) {
+      console.error('[Favorites] Error toggling favorite:', error);
+      throw error;
+    }
+  };
+
+  const isFavorite = (exhibitorId: string) => {
+    return favoriteExhibitors.has(exhibitorId);
+  };
+
+  return {
+    favoriteExhibitors,
+    toggleFavorite,
+    isFavorite,
+    loading,
+    refetch: loadFavorites,
   };
 }

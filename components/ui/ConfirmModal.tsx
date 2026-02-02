@@ -6,7 +6,7 @@
  * Replaces Alert.alert() for web compatibility.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  Animated,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -193,5 +194,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+});
+
+// Skeleton Loader Component
+interface SkeletonLoaderProps {
+  width?: number | string;
+  height?: number;
+  borderRadius?: number;
+  style?: any;
+}
+
+export function SkeletonLoader({ width = '100%', height = 20, borderRadius = 8, style }: SkeletonLoaderProps) {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.7,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View
+      style={[
+        skeletonStyles.skeleton,
+        {
+          width,
+          height,
+          borderRadius,
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+const skeletonStyles = StyleSheet.create({
+  skeleton: {
+    backgroundColor: colors.border,
   },
 });

@@ -9,6 +9,7 @@ import {
   TextInput,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -17,10 +18,10 @@ import { useConferenceData } from '@/hooks/useConferenceData';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Session } from '@/types/conference';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { ConfirmModal, SkeletonLoader } from '@/components/ui/ConfirmModal';
 
 export default function ScheduleScreen() {
-  const { sessions, loading } = useConferenceData();
+  const { sessions, loading, refetch } = useConferenceData();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { 
     scheduleNotification, 
@@ -31,6 +32,7 @@ export default function ScheduleScreen() {
   } = usePushNotifications();
   const [selectedDay, setSelectedDay] = useState<'day1' | 'day2'>('day1');
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [notificationModal, setNotificationModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
     visible: false,
     message: '',
@@ -71,6 +73,13 @@ export default function ScheduleScreen() {
     }
     const minsText = `${minutes}m`;
     return minsText;
+  };
+
+  const handleRefresh = async () => {
+    console.log('[Schedule] Pull to refresh triggered');
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
   };
 
   const handleToggleNotification = async (session: Session) => {
@@ -170,8 +179,45 @@ export default function ScheduleScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        {filteredSessions.map((session, index) => {
+        {loading && !refreshing ? (
+          // Skeleton loaders
+          <>
+            {[1, 2, 3].map((_, index) => (
+              <React.Fragment key={index}>
+                <View style={styles.sessionCard}>
+                  <View style={styles.sessionHeader}>
+                    <SkeletonLoader width={120} height={20} />
+                    <View style={styles.actionButtons}>
+                      <SkeletonLoader width={24} height={24} borderRadius={12} />
+                      <SkeletonLoader width={24} height={24} borderRadius={12} />
+                    </View>
+                  </View>
+                  <View style={styles.sessionMeta}>
+                    <SkeletonLoader width={80} height={24} borderRadius={12} />
+                    <SkeletonLoader width={40} height={16} />
+                  </View>
+                  <SkeletonLoader width="90%" height={24} style={{ marginBottom: 12 }} />
+                  <SkeletonLoader width="100%" height={16} style={{ marginBottom: 12 }} />
+                  <View style={styles.sessionFooter}>
+                    <SkeletonLoader width={100} height={16} />
+                    <SkeletonLoader width={80} height={24} borderRadius={12} />
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          <>
+            {filteredSessions.map((session, index) => {
           const bookmarked = isBookmarked(session.id);
           const hasNotification = isNotificationScheduled(session.id);
           const typeColor = getTypeColor(session.type);
@@ -271,18 +317,20 @@ export default function ScheduleScreen() {
               </View>
             </React.Fragment>
           );
-        })}
+            })}
 
-        {filteredSessions.length === 0 && (
-          <View style={styles.emptyState}>
-            <IconSymbol
-              ios_icon_name="search"
-              android_material_icon_name="search"
-              size={48}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.emptyStateText}>No sessions found</Text>
-          </View>
+            {filteredSessions.length === 0 && !loading && (
+              <View style={styles.emptyState}>
+                <IconSymbol
+                  ios_icon_name="search"
+                  android_material_icon_name="search"
+                  size={48}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.emptyStateText}>No sessions found</Text>
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 100 }} />

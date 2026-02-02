@@ -10,6 +10,7 @@ import {
   TextInput,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,11 +19,13 @@ import { colors } from '@/styles/commonStyles';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { apiGet } from '@/utils/api';
 import { Speaker } from '@/types/conference';
+import { SkeletonLoader } from '@/components/ui/ConfirmModal';
 
 export default function SpeakersScreen() {
   const router = useRouter();
-  const { speakers, loading, setSpeakers } = useConferenceData();
+  const { speakers, loading, setSpeakers, refetch } = useConferenceData();
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Auto-fetch from Airtable on mount
   React.useEffect(() => {
@@ -68,6 +71,13 @@ export default function SpeakersScreen() {
     speaker.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleRefresh = async () => {
+    console.log('[Speakers] Pull to refresh triggered');
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -96,58 +106,88 @@ export default function SpeakersScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        {filteredSpeakers.map((speaker, index) => {
-          const speakingTopicDisplay = speaker.speakingTopic || '';
-          
-          return (
-            <React.Fragment key={index}>
-              <TouchableOpacity
-                style={styles.speakerCard}
-                onPress={() => router.push(`/(tabs)/speaker/${speaker.id}` as any)}
-                activeOpacity={0.7}
-              >
-                <Image
-                  source={{ uri: speaker.photo }}
-                  style={styles.speakerPhoto}
-                />
-                <View style={styles.speakerInfo}>
-                  <Text style={styles.speakerName}>{speaker.name}</Text>
-                  <Text style={styles.speakerTitle}>{speaker.title}</Text>
-                  <Text style={styles.speakerCompany}>{speaker.company}</Text>
-                  {speakingTopicDisplay ? (
-                    <View style={styles.topicContainer}>
-                      <IconSymbol
-                        ios_icon_name="mic"
-                        android_material_icon_name="mic"
-                        size={14}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.topicText} numberOfLines={1}>{speakingTopicDisplay}</Text>
-                    </View>
-                  ) : null}
+        {loading && !refreshing ? (
+          // Skeleton loaders
+          <>
+            {[1, 2, 3, 4, 5].map((_, index) => (
+              <React.Fragment key={index}>
+                <View style={styles.speakerCard}>
+                  <SkeletonLoader width={80} height={80} borderRadius={40} />
+                  <View style={styles.speakerInfo}>
+                    <SkeletonLoader width="70%" height={20} style={{ marginBottom: 8 }} />
+                    <SkeletonLoader width="90%" height={16} style={{ marginBottom: 4 }} />
+                    <SkeletonLoader width="60%" height={16} style={{ marginBottom: 8 }} />
+                    <SkeletonLoader width="80%" height={14} />
+                  </View>
+                  <SkeletonLoader width={20} height={20} />
                 </View>
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          <>
+            {filteredSpeakers.map((speaker, index) => {
+              const speakingTopicDisplay = speaker.speakingTopic || '';
+              
+              return (
+                <React.Fragment key={index}>
+                  <TouchableOpacity
+                    style={styles.speakerCard}
+                    onPress={() => router.push(`/(tabs)/speaker/${speaker.id}` as any)}
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={{ uri: speaker.photo }}
+                      style={styles.speakerPhoto}
+                    />
+                    <View style={styles.speakerInfo}>
+                      <Text style={styles.speakerName}>{speaker.name}</Text>
+                      <Text style={styles.speakerTitle}>{speaker.title}</Text>
+                      <Text style={styles.speakerCompany}>{speaker.company}</Text>
+                      {speakingTopicDisplay ? (
+                        <View style={styles.topicContainer}>
+                          <IconSymbol
+                            ios_icon_name="mic"
+                            android_material_icon_name="mic"
+                            size={14}
+                            color={colors.primary}
+                          />
+                          <Text style={styles.topicText} numberOfLines={1}>{speakingTopicDisplay}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <IconSymbol
+                      ios_icon_name="chevron-right"
+                      android_material_icon_name="arrow-forward"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+
+            {filteredSpeakers.length === 0 && !loading && (
+              <View style={styles.emptyState}>
                 <IconSymbol
-                  ios_icon_name="chevron-right"
-                  android_material_icon_name="arrow-forward"
-                  size={20}
+                  ios_icon_name="search"
+                  android_material_icon_name="search"
+                  size={48}
                   color={colors.textSecondary}
                 />
-              </TouchableOpacity>
-            </React.Fragment>
-          );
-        })}
-
-        {filteredSpeakers.length === 0 && (
-          <View style={styles.emptyState}>
-            <IconSymbol
-              ios_icon_name="search"
-              android_material_icon_name="search"
-              size={48}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.emptyStateText}>No speakers found</Text>
-          </View>
+                <Text style={styles.emptyStateText}>No speakers found</Text>
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 100 }} />
