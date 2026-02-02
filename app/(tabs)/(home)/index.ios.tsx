@@ -80,7 +80,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -297,7 +297,7 @@ export default function HomeScreen() {
         {/* Bottom padding for tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -326,7 +326,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: Platform.OS === 'android' ? 20 : 0,
   },
   scrollView: {
     flex: 1,
@@ -335,11 +334,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   hero: {
-    marginBottom: 24,
     overflow: 'hidden',
   },
   heroOverlay: {
-    paddingVertical: 40,
+    paddingTop: Platform.OS === 'ios' ? 60 : 80,
+    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   heroContent: {
@@ -367,6 +366,7 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
+    marginTop: 24,
   },
   sectionTitle: {
     fontSize: 22,
