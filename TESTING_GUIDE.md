@@ -55,7 +55,25 @@ Then press `w` to open in web browser (recommended for admin features).
 
 **IMPORTANT:** The system now properly detects if no users exist and shows an "Initial Setup" screen.
 
-**First Time Setup:**
+**First Time Setup - Option 1: Quick Bootstrap (Recommended)**
+1. Navigate to `/admin/login`
+2. The system will check if any users exist
+3. If no users exist, you'll see:
+   - Title: "Initial Setup"
+   - Info message: "No users found. Create the first admin account to get started."
+   - A green "Quick Setup" button
+4. Click **"Quick Setup: Create Admin for momalley@marinelink.com"**
+5. Wait for the bootstrap process to complete
+6. You'll see a success message with:
+   - **Email:** `momalley@marinelink.com`
+   - **Password:** A randomly generated secure password (e.g., `Xy9#mK2$pL4@vN8!`)
+   - **Warning:** "⚠️ Please save this password and change it after first login!"
+7. The email and password fields will be auto-filled
+8. Click **"Sign In"** to login with the generated credentials
+9. You'll be automatically redirected to the dashboard
+10. **IMPORTANT:** Save the generated password immediately!
+
+**First Time Setup - Option 2: Manual Setup**
 1. Navigate to `/admin/login`
 2. The system will check if any users exist
 3. If no users exist, you'll see:
@@ -72,18 +90,26 @@ Then press `w` to open in web browser (recommended for admin features).
 **Subsequent Logins:**
 1. Navigate to `/admin/login`
 2. You'll see the normal "Admin Panel" login screen
-3. Enter your email: `admin@portcon.com`
-4. Enter your password: `Admin123!`
+3. Enter your email (e.g., `momalley@marinelink.com` or `admin@portcon.com`)
+4. Enter your password
 5. Click **"Sign In"**
 6. You'll be redirected to the dashboard
 
 **Testing Authentication:**
 - ✅ Initial setup screen appears when no users exist
-- ✅ Can create first admin account
+- ✅ Quick bootstrap creates admin account with secure random password
+- ✅ Bootstrap displays generated credentials in success message
+- ✅ Email and password fields auto-fill after bootstrap
+- ✅ Can create first admin account manually
 - ✅ Automatically signed in after account creation
 - ✅ Can sign out and sign in again
 - ✅ Session persists across page refreshes
 - ✅ Protected routes redirect to login when not authenticated
+
+**Bootstrap Credentials (for testing):**
+- **Email:** `momalley@marinelink.com`
+- **Password:** Generated randomly (displayed after bootstrap)
+- **Note:** The password is a secure 16-character string with letters, numbers, and symbols
 
 #### Test Airtable Integration
 

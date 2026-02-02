@@ -27,6 +27,8 @@ export default function AdminLoginScreen() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
   const [setupMessage, setSetupMessage] = useState('');
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [bootstrapResult, setBootstrapResult] = useState<{ email: string; password: string } | null>(null);
 
   // Check if system needs initial setup
   useEffect(() => {
@@ -107,6 +109,38 @@ export default function AdminLoginScreen() {
     }
   };
 
+  const handleBootstrap = async () => {
+    try {
+      setBootstrapping(true);
+      setError('');
+      console.log('[Admin Bootstrap] Creating admin account for momalley@marinelink.com...');
+      
+      const result = await apiPost<{ 
+        success: boolean; 
+        email: string; 
+        password: string; 
+        message: string;
+        instructions: string;
+      }>('/api/admin/setup/bootstrap', {});
+      
+      console.log('[Admin Bootstrap] Admin account created successfully!');
+      console.log('[Admin Bootstrap] Email:', result.email);
+      console.log('[Admin Bootstrap] Password:', result.password);
+      
+      setBootstrapResult({ email: result.email, password: result.password });
+      setEmail(result.email);
+      setPassword(result.password);
+      
+      // Refresh setup status
+      await checkSetupStatus();
+    } catch (err) {
+      console.error('[Admin Bootstrap] Failed to create admin account:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create admin account');
+    } finally {
+      setBootstrapping(false);
+    }
+  };
+
   if (Platform.OS !== 'web') {
     return (
       <SafeAreaView style={styles.container}>
@@ -164,6 +198,23 @@ export default function AdminLoginScreen() {
                 color={colors.primary}
               />
               <Text style={styles.infoText}>{setupMessage}</Text>
+            </View>
+          )}
+
+          {bootstrapResult && (
+            <View style={styles.successBox}>
+              <IconSymbol
+                ios_icon_name="check"
+                android_material_icon_name="check-circle"
+                size={20}
+                color="#059669"
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.successTitle}>Admin Account Created!</Text>
+                <Text style={styles.successText}>Email: {bootstrapResult.email}</Text>
+                <Text style={styles.successText}>Password: {bootstrapResult.password}</Text>
+                <Text style={styles.successWarning}>⚠️ Please save this password and change it after first login!</Text>
+              </View>
             </View>
           )}
 
@@ -228,6 +279,24 @@ export default function AdminLoginScreen() {
                 }
               </Text>
             </TouchableOpacity>
+
+            {needsSetup && (
+              <TouchableOpacity
+                style={[styles.bootstrapButton, bootstrapping && styles.bootstrapButtonDisabled]}
+                onPress={handleBootstrap}
+                disabled={bootstrapping}
+              >
+                <IconSymbol
+                  ios_icon_name="bolt"
+                  android_material_icon_name="flash-on"
+                  size={16}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.bootstrapButtonText}>
+                  {bootstrapping ? 'Creating Admin Account...' : 'Quick Setup: Create Admin for momalley@marinelink.com'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {!needsSetup && (
               <View style={styles.helpText}>
@@ -423,5 +492,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  bootstrapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  bootstrapButtonDisabled: {
+    opacity: 0.6,
+  },
+  bootstrapButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#065F46',
+    marginBottom: 8,
+  },
+  successText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#047857',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  successWarning: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+    marginTop: 8,
   },
 });
