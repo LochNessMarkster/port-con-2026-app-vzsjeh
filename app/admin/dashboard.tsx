@@ -157,43 +157,72 @@ function DashboardContent() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Airtable Integration</Text>
-          <View style={styles.airtableCard}>
-            <IconSymbol
-              ios_icon_name="cloud"
-              android_material_icon_name="cloud"
-              size={32}
-              color={colors.primary}
-            />
-            <Text style={styles.airtableTitle}>Sync Data from Airtable</Text>
-            <Text style={styles.airtableDescription}>
-              Import speakers, sessions, and other conference data from your Airtable base.
-            </Text>
-            <View style={styles.airtableButtons}>
-              <TouchableOpacity
-                style={styles.airtableButton}
-                onPress={handleSyncAirtable}
-              >
-                <IconSymbol
-                  ios_icon_name="info"
-                  android_material_icon_name="info"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.airtableButtonText}>View Integration Guide</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.diagnosticButton}
-                onPress={() => router.push('/admin/check-airtable-fields' as any)}
-              >
-                <IconSymbol
-                  ios_icon_name="magnifyingglass"
-                  android_material_icon_name="search"
-                  size={20}
-                  color={colors.primary}
-                />
-                <Text style={styles.diagnosticButtonText}>Check Field Mapping</Text>
-              </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Data Import</Text>
+          <View style={styles.grid}>
+            <View style={styles.airtableCard}>
+              <IconSymbol
+                ios_icon_name="cloud"
+                android_material_icon_name="cloud"
+                size={32}
+                color={colors.primary}
+              />
+              <Text style={styles.airtableTitle}>Airtable Integration</Text>
+              <Text style={styles.airtableDescription}>
+                Import speakers, sessions, and other conference data from your Airtable base.
+              </Text>
+              <View style={styles.airtableButtons}>
+                <TouchableOpacity
+                  style={styles.airtableButton}
+                  onPress={handleSyncAirtable}
+                >
+                  <IconSymbol
+                    ios_icon_name="info"
+                    android_material_icon_name="info"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.airtableButtonText}>View Integration Guide</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.diagnosticButton}
+                  onPress={() => router.push('/admin/check-airtable-fields' as any)}
+                >
+                  <IconSymbol
+                    ios_icon_name="magnifyingglass"
+                    android_material_icon_name="search"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.diagnosticButtonText}>Check Field Mapping</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.airtableCard}>
+              <IconSymbol
+                ios_icon_name="table"
+                android_material_icon_name="table-chart"
+                size={32}
+                color="#059669"
+              />
+              <Text style={styles.airtableTitle}>Google Sheets Sync</Text>
+              <Text style={styles.airtableDescription}>
+                Import exhibitors and schedule data directly from Google Sheets.
+              </Text>
+              <View style={styles.airtableButtons}>
+                <TouchableOpacity
+                  style={[styles.airtableButton, { backgroundColor: '#059669' }]}
+                  onPress={() => router.push('/admin/google-sheets-sync' as any)}
+                >
+                  <IconSymbol
+                    ios_icon_name="sync"
+                    android_material_icon_name="sync"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.airtableButtonText}>Sync from Google Sheets</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>

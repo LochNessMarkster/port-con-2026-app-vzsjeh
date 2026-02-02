@@ -21,6 +21,7 @@ export default function AdminLayout() {
         <Stack.Screen name="ports" />
         <Stack.Screen name="airtable-info" />
         <Stack.Screen name="check-airtable-fields" />
+        <Stack.Screen name="google-sheets-sync" />
       </Stack>
     </AuthProvider>
   );
