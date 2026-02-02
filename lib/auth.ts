@@ -37,7 +37,7 @@ export const authClient = createAuthClient({
   baseURL: API_URL,
   plugins: [
     expoClient({
-      scheme: "PortCon 2026",
+      scheme: "portcon2026",
       storagePrefix: "portcon",
       storage,
     }),

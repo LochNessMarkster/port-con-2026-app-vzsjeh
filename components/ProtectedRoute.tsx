@@ -67,6 +67,9 @@ export function ProtectedRoute({
   return <>{children}</>;
 }
 
+// Default export for easier imports
+export default ProtectedRoute;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -51,19 +51,39 @@ Then press `w` to open in web browser (recommended for admin features).
 1. Navigate to `/admin/login` in your browser
 2. You'll see the admin login screen
 
-#### Create Admin Account
-Since this is a new deployment, create an account:
+#### Create Admin Account (Initial Setup)
 
-**Option A: Email/Password**
-1. Enter email: `admin@portcon.com`
-2. Enter password: `PortCon2026!`
-3. Click "Sign In"
-4. If account doesn't exist, it will be created automatically
+**IMPORTANT:** The system now properly detects if no users exist and shows an "Initial Setup" screen.
 
-**Option B: OAuth (if configured)**
-1. Click "Sign in with Google"
-2. Complete OAuth flow
-3. You'll be redirected to the dashboard
+**First Time Setup:**
+1. Navigate to `/admin/login`
+2. The system will check if any users exist
+3. If no users exist, you'll see:
+   - Title: "Initial Setup"
+   - Info message: "No users found. Create the first admin account to get started."
+   - Three fields: Name, Email, Password
+4. Fill in the form:
+   - **Name:** `Admin User` (or your preferred name)
+   - **Email:** `admin@portcon.com`
+   - **Password:** `Admin123!` (must be at least 8 characters)
+5. Click **"Create Admin Account"**
+6. You'll be automatically signed in and redirected to the dashboard
+
+**Subsequent Logins:**
+1. Navigate to `/admin/login`
+2. You'll see the normal "Admin Panel" login screen
+3. Enter your email: `admin@portcon.com`
+4. Enter your password: `Admin123!`
+5. Click **"Sign In"**
+6. You'll be redirected to the dashboard
+
+**Testing Authentication:**
+- ✅ Initial setup screen appears when no users exist
+- ✅ Can create first admin account
+- ✅ Automatically signed in after account creation
+- ✅ Can sign out and sign in again
+- ✅ Session persists across page refreshes
+- ✅ Protected routes redirect to login when not authenticated
 
 #### Test Airtable Integration
 

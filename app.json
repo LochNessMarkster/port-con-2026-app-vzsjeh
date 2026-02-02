@@ -1,8 +1,7 @@
-
 {
   "expo": {
     "name": "PortCon 2026",
-    "slug": "portcon2026",
+    "slug": "PortCon 2026",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -37,7 +36,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "portcon2026",
+    "scheme": "PortCon 2026",
     "experiments": {
       "typedRoutes": true
     },

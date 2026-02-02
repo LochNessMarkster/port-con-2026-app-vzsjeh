@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,30 +8,99 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiGet, apiPost } from '@/utils/api';
 
 export default function AdminLoginScreen() {
   const router = useRouter();
-  const { signInWithEmail, loading } = useAuth();
+  const { signInWithEmail, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+  const [setupMessage, setSetupMessage] = useState('');
+
+  // Check if system needs initial setup
+  useEffect(() => {
+    checkSetupStatus();
+  }, []);
+
+  const checkSetupStatus = async () => {
+    try {
+      setCheckingSetup(true);
+      console.log('[Admin] Checking setup status...');
+      const status = await apiGet<{ needsSetup: boolean; userCount: number; message: string }>('/api/admin/setup/status');
+      console.log('[Admin] Setup status:', status);
+      setNeedsSetup(status.needsSetup);
+      setSetupMessage(status.message || '');
+    } catch (err) {
+      console.error('[Admin] Failed to check setup status:', err);
+      // If endpoint fails, assume normal login flow
+      setNeedsSetup(false);
+    } finally {
+      setCheckingSetup(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
       setError('');
-      console.log('[Admin] Attempting login...');
+      console.log('[Admin] Attempting login with email:', email);
       await signInWithEmail(email, password);
       console.log('[Admin] Login successful, redirecting to dashboard');
       router.replace('/admin/dashboard' as any);
     } catch (err) {
       console.error('[Admin] Login error:', err);
       setError(err instanceof Error ? err.message : 'Invalid email or password');
+    }
+  };
+
+  const handleCreateAdmin = async () => {
+    try {
+      setError('');
+      
+      if (!name || !email || !password) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+      }
+
+      console.log('[Admin] Creating first admin user...');
+      const result = await apiPost<{ success: boolean; message: string; user: any }>('/api/admin/setup/create-admin', {
+        email,
+        password,
+        name,
+      });
+      
+      console.log('[Admin] Admin user created:', result);
+      
+      // Now sign in with the new credentials
+      await signInWithEmail(email, password);
+      console.log('[Admin] Login successful, redirecting to dashboard');
+      router.replace('/admin/dashboard' as any);
+    } catch (err) {
+      console.error('[Admin] Failed to create admin:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create admin account');
+    }
+  };
+
+  const handleSubmit = () => {
+    if (needsSetup) {
+      handleCreateAdmin();
+    } else {
+      handleLogin();
     }
   };
 
@@ -60,14 +129,40 @@ export default function AdminLoginScreen() {
     );
   }
 
+  // Show loading while checking setup status
+  if (checkingSetup) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Checking system status...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.loginBox}>
           <View style={styles.header}>
-            <Text style={styles.title}>Admin Panel</Text>
+            <Text style={styles.title}>
+              {needsSetup ? 'Initial Setup' : 'Admin Panel'}
+            </Text>
             <Text style={styles.subtitle}>Port of the Future Conference 2026</Text>
           </View>
+
+          {needsSetup && setupMessage && (
+            <View style={styles.infoBox}>
+              <IconSymbol
+                ios_icon_name="info"
+                android_material_icon_name="info"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={styles.infoText}>{setupMessage}</Text>
+            </View>
+          )}
 
           {error ? (
             <View style={styles.errorBox}>
@@ -76,6 +171,21 @@ export default function AdminLoginScreen() {
           ) : null}
 
           <View style={styles.form}>
+            {needsSetup && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Your name"
+                  placeholderTextColor={colors.textSecondary}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                />
+              </View>
+            )}
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email</Text>
               <TextInput
@@ -94,7 +204,7 @@ export default function AdminLoginScreen() {
               <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your password"
+                placeholder={needsSetup ? "At least 8 characters" : "Enter your password"}
                 placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -104,14 +214,25 @@ export default function AdminLoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
+              style={[styles.loginButton, authLoading && styles.loginButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={authLoading}
             >
               <Text style={styles.loginButtonText}>
-                {loading ? 'Signing in...' : 'Sign In'}
+                {authLoading 
+                  ? (needsSetup ? 'Creating Admin Account...' : 'Signing in...') 
+                  : (needsSetup ? 'Create Admin Account' : 'Sign In')
+                }
               </Text>
             </TouchableOpacity>
+
+            {!needsSetup && (
+              <View style={styles.helpText}>
+                <Text style={styles.helpTextContent}>
+                  If you forgot your password or need help, please contact the system administrator.
+                </Text>
+              </View>
+            )}
           </View>
 
           <TouchableOpacity
@@ -136,6 +257,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   scrollContent: {
     flexGrow: 1,
@@ -167,6 +299,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E40AF',
+    lineHeight: 20,
   },
   errorBox: {
     backgroundColor: '#FEE2E2',
@@ -215,6 +363,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  helpText: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  helpTextContent: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   backToAppButton: {
     flexDirection: 'row',
