@@ -13,6 +13,13 @@ import {
 } from '../utils/csv-parser.js';
 import { detectSessionChanges, recordSessionChange } from '../utils/session-change-detector.js';
 import { sendPushNotificationsToMultiple } from '../utils/push-notifications.js';
+import {
+  fetchGoogleSheetData,
+  previewGoogleSheetData,
+  parseExhibitorRow as parseGoogleSheetsExhibitor,
+  parseSessionRow as parseGoogleSheetsSession,
+  findColumnIndices,
+} from '../utils/google-sheets.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
 const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
@@ -1726,6 +1733,459 @@ export function registerAdminRoutes(app: App) {
         app.logger.error({ err: error }, 'Failed to import sessions from CSV');
         return reply.status(400).send({
           error: `CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+    }
+  );
+
+  // GET /api/admin/sync/google-sheets-preview - Preview Google Sheet data
+  app.fastify.get(
+    '/api/admin/sync/google-sheets-preview',
+    {
+      schema: {
+        description: 'Preview Google Sheet data before import',
+        tags: ['admin', 'google-sheets'],
+        querystring: {
+          type: 'object',
+          properties: {
+            spreadsheetId: { type: 'string' },
+            sheetName: { type: 'string' },
+            type: { type: 'string', enum: ['exhibitors', 'schedule'] },
+          },
+          required: ['spreadsheetId', 'type'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              headers: { type: 'array', items: { type: 'string' } },
+              rows: { type: 'array' },
+              valid: { type: 'boolean' },
+              errors: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const query = request.query as any;
+      const { spreadsheetId, sheetName = 'Sheet1', type } = query;
+
+      app.logger.info(
+        { spreadsheetId, sheetName, type },
+        'Previewing Google Sheet data'
+      );
+
+      try {
+        const preview = await previewGoogleSheetData(spreadsheetId, sheetName);
+
+        if (!preview.valid) {
+          app.logger.warn(
+            { spreadsheetId, errors: preview.errors },
+            'Failed to preview Google Sheet'
+          );
+          return reply.status(400).send({
+            headers: [],
+            rows: [],
+            valid: false,
+            errors: preview.errors,
+          });
+        }
+
+        app.logger.info(
+          { spreadsheetId, rowCount: preview.rows.length },
+          'Google Sheet preview retrieved successfully'
+        );
+
+        return {
+          headers: preview.headers,
+          rows: preview.rows,
+          valid: true,
+          errors: [],
+        };
+      } catch (error) {
+        app.logger.error(
+          { err: error, spreadsheetId },
+          'Failed to preview Google Sheet'
+        );
+        return reply.status(400).send({
+          error: error instanceof Error ? error.message : 'Failed to preview sheet',
+        });
+      }
+    }
+  );
+
+  // POST /api/admin/sync/google-sheets-exhibitors - Import exhibitors from Google Sheet
+  app.fastify.post(
+    '/api/admin/sync/google-sheets-exhibitors',
+    {
+      schema: {
+        description: 'Import exhibitors from Google Sheet',
+        tags: ['admin', 'google-sheets'],
+        body: {
+          type: 'object',
+          properties: {
+            spreadsheetId: { type: 'string' },
+            sheetName: { type: 'string' },
+          },
+          required: ['spreadsheetId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              imported: { type: 'integer' },
+              errors: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const body = request.body as any;
+      const { spreadsheetId, sheetName = 'Sheet1' } = body;
+
+      app.logger.info(
+        { spreadsheetId, sheetName },
+        'Starting Google Sheets exhibitor import'
+      );
+
+      try {
+        const data = await fetchGoogleSheetData(spreadsheetId, sheetName);
+
+        if (data.values.length < 2) {
+          return reply.status(400).send({
+            error: 'Sheet must contain headers and at least one data row',
+          });
+        }
+
+        const headers = data.values[0];
+
+        // Find column indices
+        const columnResult = findColumnIndices(headers, {
+          required: ['Name'],
+          optional: ['Description', 'Logo URL', 'Booth Number', 'Category', 'Website', 'Map X', 'Map Y'],
+        });
+
+        if (!columnResult.valid) {
+          app.logger.warn(
+            { spreadsheetId, errors: columnResult.errors },
+            'Invalid exhibitor sheet columns'
+          );
+          return reply.status(400).send({
+            error: `Invalid columns: ${columnResult.errors.join(', ')}`,
+          });
+        }
+
+        const errors: string[] = [];
+        let imported = 0;
+
+        // Process data rows
+        for (let i = 1; i < data.values.length; i++) {
+          const row = data.values[i];
+
+          try {
+            // Validate row
+            if (!row[columnResult.indices['Name']]?.trim()) {
+              errors.push(`Row ${i + 1}: Name is required`);
+              continue;
+            }
+
+            // Parse exhibitor data
+            const exhibitorData = parseGoogleSheetsExhibitor(row, columnResult.indices);
+
+            // Check if exhibitor exists by name
+            const existing = await app.db.query.exhibitors.findFirst({
+              where: eq(schema.exhibitors.name, exhibitorData.name),
+            });
+
+            if (existing) {
+              await app.db
+                .update(schema.exhibitors)
+                .set(exhibitorData)
+                .where(eq(schema.exhibitors.id, existing.id));
+              app.logger.debug({ name: exhibitorData.name }, 'Exhibitor updated');
+            } else {
+              await app.db.insert(schema.exhibitors).values(exhibitorData);
+              app.logger.debug({ name: exhibitorData.name }, 'Exhibitor created');
+            }
+
+            imported++;
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            errors.push(`Row ${i + 1}: ${errorMsg}`);
+            app.logger.warn(
+              { error, row: i + 1 },
+              'Failed to process exhibitor row'
+            );
+          }
+        }
+
+        app.logger.info(
+          { spreadsheetId, imported, errors: errors.length },
+          'Google Sheets exhibitor import completed'
+        );
+
+        return {
+          success: true,
+          imported,
+          errors,
+        };
+      } catch (error) {
+        app.logger.error(
+          { err: error, spreadsheetId },
+          'Failed to import exhibitors from Google Sheets'
+        );
+        return reply.status(400).send({
+          error: error instanceof Error ? error.message : 'Failed to import exhibitors',
+        });
+      }
+    }
+  );
+
+  // POST /api/admin/sync/google-sheets-schedule - Import sessions from Google Sheet
+  app.fastify.post(
+    '/api/admin/sync/google-sheets-schedule',
+    {
+      schema: {
+        description: 'Import sessions/schedule from Google Sheet',
+        tags: ['admin', 'google-sheets'],
+        body: {
+          type: 'object',
+          properties: {
+            spreadsheetId: { type: 'string' },
+            sheetName: { type: 'string' },
+          },
+          required: ['spreadsheetId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              imported: { type: 'integer' },
+              errors: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      const body = request.body as any;
+      const { spreadsheetId, sheetName = 'Sheet1' } = body;
+
+      app.logger.info(
+        { spreadsheetId, sheetName },
+        'Starting Google Sheets schedule import'
+      );
+
+      try {
+        const data = await fetchGoogleSheetData(spreadsheetId, sheetName);
+
+        if (data.values.length < 2) {
+          return reply.status(400).send({
+            error: 'Sheet must contain headers and at least one data row',
+          });
+        }
+
+        const headers = data.values[0];
+
+        // Find column indices
+        const columnResult = findColumnIndices(headers, {
+          required: ['Title', 'Start Time', 'End Time'],
+          optional: ['Description', 'Room Name', 'Type', 'Track', 'Speaker Names'],
+        });
+
+        if (!columnResult.valid) {
+          app.logger.warn(
+            { spreadsheetId, errors: columnResult.errors },
+            'Invalid schedule sheet columns'
+          );
+          return reply.status(400).send({
+            error: `Invalid columns: ${columnResult.errors.join(', ')}`,
+          });
+        }
+
+        const errors: string[] = [];
+        let imported = 0;
+
+        // Process data rows
+        for (let i = 1; i < data.values.length; i++) {
+          const row = data.values[i];
+
+          try {
+            // Validate row
+            if (!row[columnResult.indices['Title']]?.trim()) {
+              errors.push(`Row ${i + 1}: Title is required`);
+              continue;
+            }
+
+            // Parse session data
+            const sessionData = parseGoogleSheetsSession(row, columnResult.indices);
+
+            // Validate timestamps
+            const startTime = new Date(sessionData.startTime);
+            const endTime = new Date(sessionData.endTime);
+
+            if (isNaN(startTime.getTime())) {
+              errors.push(`Row ${i + 1}: Invalid Start Time format`);
+              continue;
+            }
+
+            if (isNaN(endTime.getTime())) {
+              errors.push(`Row ${i + 1}: Invalid End Time format`);
+              continue;
+            }
+
+            // Find or create room if roomName provided
+            let roomId: string | null = null;
+            if (sessionData.roomName) {
+              let room = await app.db.query.rooms.findFirst({
+                where: eq(schema.rooms.name, sessionData.roomName),
+              });
+
+              if (!room) {
+                const newRoom = await app.db
+                  .insert(schema.rooms)
+                  .values({
+                    name: sessionData.roomName,
+                    location: sessionData.roomName,
+                    capacity: 100,
+                  })
+                  .returning();
+                room = newRoom[0];
+                app.logger.debug({ roomName: sessionData.roomName }, 'Room created');
+              }
+              roomId = room.id;
+            }
+
+            // Check if session exists by title
+            const existing = await app.db.query.sessions.findFirst({
+              where: eq(schema.sessions.title, sessionData.title),
+            });
+
+            const sessionDataToSave = {
+              title: sessionData.title,
+              description: sessionData.description || null,
+              startTime,
+              endTime,
+              roomId,
+              type: sessionData.type || null,
+              track: sessionData.track || null,
+            };
+
+            let sessionId: string;
+
+            if (existing) {
+              await app.db
+                .update(schema.sessions)
+                .set(sessionDataToSave)
+                .where(eq(schema.sessions.id, existing.id));
+              sessionId = existing.id;
+              app.logger.debug({ title: sessionData.title }, 'Session updated');
+            } else {
+              const newSession = await app.db
+                .insert(schema.sessions)
+                .values(sessionDataToSave)
+                .returning();
+              sessionId = newSession[0].id;
+              app.logger.debug({ title: sessionData.title }, 'Session created');
+            }
+
+            // Handle speakers
+            if (sessionData.speakers && sessionData.speakers.length > 0) {
+              // Clear existing speaker associations
+              await app.db.delete(schema.sessionSpeakers).where(
+                eq(schema.sessionSpeakers.sessionId, sessionId)
+              );
+
+              // Find or create speakers
+              for (const speakerName of sessionData.speakers) {
+                let speaker = await app.db.query.speakers.findFirst({
+                  where: eq(schema.speakers.name, speakerName),
+                });
+
+                if (!speaker) {
+                  const newSpeaker = await app.db
+                    .insert(schema.speakers)
+                    .values({
+                      name: speakerName,
+                      title: null,
+                      company: null,
+                      bio: null,
+                      photo: null,
+                      speakingTopic: null,
+                      synopsis: null,
+                    })
+                    .returning();
+                  speaker = newSpeaker[0];
+                  app.logger.debug({ name: speakerName }, 'Speaker created');
+                }
+
+                // Add speaker to session
+                await app.db.insert(schema.sessionSpeakers).values({
+                  sessionId,
+                  speakerId: speaker.id,
+                });
+              }
+            }
+
+            imported++;
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            errors.push(`Row ${i + 1}: ${errorMsg}`);
+            app.logger.warn(
+              { error, row: i + 1 },
+              'Failed to process session row'
+            );
+          }
+        }
+
+        app.logger.info(
+          { spreadsheetId, imported, errors: errors.length },
+          'Google Sheets schedule import completed'
+        );
+
+        return {
+          success: true,
+          imported,
+          errors,
+        };
+      } catch (error) {
+        app.logger.error(
+          { err: error, spreadsheetId },
+          'Failed to import schedule from Google Sheets'
+        );
+        return reply.status(400).send({
+          error: error instanceof Error ? error.message : 'Failed to import schedule',
         });
       }
     }
