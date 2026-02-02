@@ -69,6 +69,16 @@ export default function HomeScreen() {
     }
   };
 
+  const handleNavButtonPress = (title: string, route: string) => {
+    console.log('Navigation button pressed:', title, 'Route:', route);
+    try {
+      router.push(route as any);
+      console.log('Navigation successful to:', route);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
@@ -125,7 +135,7 @@ export default function HomeScreen() {
               <React.Fragment key={index}>
                 <TouchableOpacity
                   style={styles.navButton}
-                  onPress={() => router.push(button.route as any)}
+                  onPress={() => handleNavButtonPress(button.title, button.route)}
                   activeOpacity={0.7}
                 >
                   <View style={[styles.navIconContainer, { backgroundColor: button.color }]}>
@@ -247,48 +257,57 @@ export default function HomeScreen() {
         {/* Upcoming Sessions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
-          {upcomingSessions.map((session, index) => (
-            <React.Fragment key={index}>
-              <TouchableOpacity
-                style={styles.sessionCard}
-                activeOpacity={0.7}
-              >
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionTime}>
-                    <Text style={styles.sessionTimeText}>
-                      {formatTime(session.start_time)}
+          {upcomingSessions.map((session, index) => {
+            const sessionTimeText = formatTime(session.start_time);
+            const sessionDateText = formatDate(session.start_time);
+            const sessionTypeText = session.type;
+            const sessionRoomName = session.room?.name;
+            const sessionTrackText = session.track;
+            const speakersText = session.speakers.map(s => s.name).join(', ');
+            
+            return (
+              <React.Fragment key={index}>
+                <TouchableOpacity
+                  style={styles.sessionCard}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.sessionHeader}>
+                    <View style={styles.sessionTime}>
+                      <Text style={styles.sessionTimeText}>
+                        {sessionTimeText}
+                      </Text>
+                      <Text style={styles.sessionDate}>
+                        {sessionDateText}
+                      </Text>
+                    </View>
+                    <View style={[styles.sessionTypeBadge, { backgroundColor: getTypeColor(session.type) }]}>
+                      <Text style={styles.sessionTypeBadgeText}>{sessionTypeText}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.sessionTitle}>{session.title}</Text>
+                  {session.speakers.length > 0 && (
+                    <Text style={styles.sessionSpeakers}>
+                      {speakersText}
                     </Text>
-                    <Text style={styles.sessionDate}>
-                      {formatDate(session.start_time)}
-                    </Text>
+                  )}
+                  <View style={styles.sessionFooter}>
+                    <View style={styles.sessionRoom}>
+                      <IconSymbol
+                        ios_icon_name="location"
+                        android_material_icon_name="place"
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                      <Text style={styles.sessionRoomText}>{sessionRoomName}</Text>
+                    </View>
+                    <View style={[styles.trackBadge, { backgroundColor: colors.highlight }]}>
+                      <Text style={styles.trackBadgeText}>{sessionTrackText}</Text>
+                    </View>
                   </View>
-                  <View style={[styles.sessionTypeBadge, { backgroundColor: getTypeColor(session.type) }]}>
-                    <Text style={styles.sessionTypeBadgeText}>{session.type}</Text>
-                  </View>
-                </View>
-                <Text style={styles.sessionTitle}>{session.title}</Text>
-                {session.speakers.length > 0 && (
-                  <Text style={styles.sessionSpeakers}>
-                    {session.speakers.map(s => s.name).join(', ')}
-                  </Text>
-                )}
-                <View style={styles.sessionFooter}>
-                  <View style={styles.sessionRoom}>
-                    <IconSymbol
-                      ios_icon_name="location"
-                      android_material_icon_name="place"
-                      size={16}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.sessionRoomText}>{session.room?.name}</Text>
-                  </View>
-                  <View style={[styles.trackBadge, { backgroundColor: colors.highlight }]}>
-                    <Text style={styles.trackBadgeText}>{session.track}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
+                </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
         </View>
 
         {/* Bottom padding for tab bar */}
