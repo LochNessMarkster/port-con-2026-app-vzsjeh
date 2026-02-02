@@ -44,12 +44,12 @@ export default function HomeScreen() {
   }, [exhibitors]);
 
   const navButtons = [
-    { title: 'Schedule', icon: 'calendar-today', route: '/(tabs)/schedule', color: colors.primary },
-    { title: 'Speakers', icon: 'person', route: '/(tabs)/speakers', color: colors.secondary },
-    { title: 'Exhibitors', icon: 'store', route: '/(tabs)/exhibitors', color: colors.accent },
-    { title: 'Sponsors', icon: 'star', route: '/(tabs)/sponsors', color: colors.primary },
-    { title: 'Ports', icon: 'directions-boat', route: '/(tabs)/ports', color: colors.secondary },
-    { title: 'My Schedule', icon: 'favorite', route: '/(tabs)/my-schedule', color: colors.accent },
+    { title: 'Schedule', iosIcon: 'calendar', androidIcon: 'calendar-today', route: '/(tabs)/schedule', color: colors.primary },
+    { title: 'Speakers', iosIcon: 'person.2.fill', androidIcon: 'person', route: '/(tabs)/speakers', color: colors.secondary },
+    { title: 'Exhibitors', iosIcon: 'building.2.fill', androidIcon: 'store', route: '/(tabs)/exhibitors', color: colors.accent },
+    { title: 'Sponsors', iosIcon: 'star.fill', androidIcon: 'star', route: '/(tabs)/sponsors', color: colors.primary },
+    { title: 'Ports', iosIcon: 'ferry.fill', androidIcon: 'directions-boat', route: '/(tabs)/ports', color: colors.secondary },
+    { title: 'My Schedule', iosIcon: 'heart.fill', androidIcon: 'favorite', route: '/(tabs)/my-schedule', color: colors.accent },
   ];
 
   const formatTime = (dateString: string) => {
@@ -107,7 +107,7 @@ export default function HomeScreen() {
               <View style={styles.heroDetails}>
                 <View style={styles.heroDetailItem}>
                   <IconSymbol
-                    ios_icon_name="calendar"
+                    ios_icon_name="calendar.badge.clock"
                     android_material_icon_name="calendar-today"
                     size={20}
                     color="#FFFFFF"
@@ -116,7 +116,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.heroDetailItem}>
                   <IconSymbol
-                    ios_icon_name="location"
+                    ios_icon_name="mappin.and.ellipse"
                     android_material_icon_name="place"
                     size={20}
                     color="#FFFFFF"
@@ -140,8 +140,8 @@ export default function HomeScreen() {
                 >
                   <View style={[styles.navIconContainer, { backgroundColor: button.color }]}>
                     <IconSymbol
-                      ios_icon_name={button.icon}
-                      android_material_icon_name={button.icon}
+                      ios_icon_name={button.iosIcon}
+                      android_material_icon_name={button.androidIcon}
                       size={28}
                       color="#FFFFFF"
                     />
@@ -177,7 +177,7 @@ export default function HomeScreen() {
               {featuredSponsor.website && (
                 <View style={styles.featuredFooter}>
                   <IconSymbol
-                    ios_icon_name="link"
+                    ios_icon_name="link.circle.fill"
                     android_material_icon_name="link"
                     size={16}
                     color={colors.primary}
@@ -213,7 +213,7 @@ export default function HomeScreen() {
               <View style={styles.exhibitorDetails}>
                 <View style={styles.exhibitorDetailItem}>
                   <IconSymbol
-                    ios_icon_name="location"
+                    ios_icon_name="mappin.circle.fill"
                     android_material_icon_name="place"
                     size={16}
                     color={colors.textSecondary}
@@ -223,7 +223,7 @@ export default function HomeScreen() {
                 {featuredExhibitor.website && (
                   <View style={styles.featuredFooter}>
                     <IconSymbol
-                      ios_icon_name="link"
+                      ios_icon_name="link.circle.fill"
                       android_material_icon_name="link"
                       size={16}
                       color={colors.primary}
@@ -276,7 +276,7 @@ export default function HomeScreen() {
                     <View style={styles.sessionFooter}>
                       <View style={styles.sessionRoom}>
                         <IconSymbol
-                          ios_icon_name="location"
+                          ios_icon_name="mappin.circle"
                           android_material_icon_name="place"
                           size={16}
                           color={colors.textSecondary}
