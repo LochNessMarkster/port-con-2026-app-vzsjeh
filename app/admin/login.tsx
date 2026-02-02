@@ -77,22 +77,25 @@ export default function AdminLoginScreen() {
         return;
       }
 
-      console.log('[Admin] Creating first admin user...');
+      console.log('[Admin Setup] Creating first admin user with email:', email);
+      console.log('[Admin Setup] Calling POST /api/admin/setup/create-admin');
+      
       const result = await apiPost<{ success: boolean; message: string; user: any }>('/api/admin/setup/create-admin', {
         email,
         password,
         name,
       });
       
-      console.log('[Admin] Admin user created:', result);
+      console.log('[Admin Setup] Admin user created successfully:', result);
+      console.log('[Admin Setup] Now signing in with new credentials...');
       
       // Now sign in with the new credentials
       await signInWithEmail(email, password);
-      console.log('[Admin] Login successful, redirecting to dashboard');
+      console.log('[Admin Setup] Login successful! Redirecting to dashboard...');
       router.replace('/admin/dashboard' as any);
     } catch (err) {
-      console.error('[Admin] Failed to create admin:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create admin account');
+      console.error('[Admin Setup] Failed to create admin account:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create admin account. Please try again.');
     }
   };
 
