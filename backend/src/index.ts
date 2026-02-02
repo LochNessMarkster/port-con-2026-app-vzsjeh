@@ -12,6 +12,7 @@ import { register as registerPorts } from './routes/ports.js';
 import { register as registerNotifications } from './routes/notifications.js';
 import { register as registerFavorites } from './routes/favorites.js';
 import { register as registerBookmarks } from './routes/bookmarks.js';
+import { register as registerAdminSetup } from './routes/admin-setup.js';
 import { registerAdminRoutes } from './routes/admin.js';
 
 // Combine schemas
@@ -37,6 +38,7 @@ registerPorts(app, app.fastify);
 registerNotifications(app, app.fastify);
 registerFavorites(app, app.fastify);
 registerBookmarks(app, app.fastify);
+registerAdminSetup(app, app.fastify);
 registerAdminRoutes(app);
 
 await app.run();
@@ -50,3 +52,32 @@ app.logger.info(
   },
   'Airtable configuration - verify table IDs are correct'
 );
+
+// Check if initial setup is needed
+try {
+  const users = await app.db.query.user.findMany();
+  if (users.length === 0) {
+    app.logger.warn(
+      {
+        setupUrl: 'POST /api/admin/setup/create-admin',
+        statusUrl: 'GET /api/admin/setup/status',
+      },
+      '⚠️  NO ADMIN USERS FOUND - System needs initial setup!'
+    );
+    app.logger.info(
+      {
+        instructions: [
+          '1. Send POST request to /api/admin/setup/create-admin with body:',
+          '   { "email": "admin@conference.com", "password": "SecurePassword123", "name": "Admin User" }',
+          '2. Or check /api/admin/setup/status for setup status',
+          '3. For debugging, use /api/admin/debug/auth (development only)',
+        ],
+      },
+      'Setup instructions'
+    );
+  } else {
+    app.logger.info({ userCount: users.length }, 'Admin users are configured');
+  }
+} catch (error) {
+  app.logger.error({ err: error }, 'Could not check setup status');
+}
