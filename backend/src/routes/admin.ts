@@ -2020,8 +2020,18 @@ export function registerAdminRoutes(app: App) {
 
         // Find column indices
         const columnResult = findColumnIndices(headers, {
-          required: ['Title', 'Start Time', 'End Time'],
-          optional: ['Description', 'Room Name', 'Type', 'Track', 'Speaker Names'],
+          required: ['Title', 'Start Time'],
+          optional: [
+            'Description',
+            'Date',
+            'End Time',
+            'Room Name',
+            'Type',
+            'Track',
+            'Speaker Names',
+            'Speakers First',
+            'Speakers Last',
+          ],
         });
 
         if (!columnResult.valid) {
@@ -2045,6 +2055,11 @@ export function registerAdminRoutes(app: App) {
             // Validate row
             if (!row[columnResult.indices['Title']]?.trim()) {
               errors.push(`Row ${i + 1}: Title is required`);
+              continue;
+            }
+
+            if (!row[columnResult.indices['Start Time']]?.trim()) {
+              errors.push(`Row ${i + 1}: Start Time is required`);
               continue;
             }
 
