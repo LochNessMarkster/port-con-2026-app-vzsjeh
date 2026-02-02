@@ -3,6 +3,38 @@ import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 
 /**
+ * Generate a secure random password with letters, numbers, and symbols
+ * Minimum 12 characters
+ */
+function generateSecurePassword(): string {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*-_=+';
+
+  const allChars = uppercase + lowercase + numbers + symbols;
+
+  // Ensure at least one of each character type
+  let password = '';
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+
+  // Fill the rest randomly to reach 12+ characters (16 for better security)
+  const targetLength = 16;
+  while (password.length < targetLength) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+
+  // Shuffle the password
+  return password
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('');
+}
+
+/**
  * Admin setup routes - only available when no users exist
  * Used to bootstrap the first admin user
  */
@@ -213,6 +245,156 @@ export function register(app: App, fastify: FastifyInstance) {
 
         return reply.status(400).send({
           error: error instanceof Error ? error.message : 'Failed to create admin user',
+        });
+      }
+    }
+  );
+
+  // POST /api/admin/setup/bootstrap - Bootstrap with auto-generated password (one-time setup)
+  fastify.post(
+    '/api/admin/setup/bootstrap',
+    {
+      schema: {
+        description: 'Bootstrap the first admin user with a generated secure password (one-time setup endpoint)',
+        tags: ['admin-setup'],
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              email: { type: 'string' },
+              password: { type: 'string' },
+              instructions: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+          403: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const email = 'momalley@marinelink.com';
+      const name = 'Admin User';
+
+      app.logger.info({ email }, 'Attempting to bootstrap first admin user');
+
+      try {
+        // Check if users already exist
+        const existingUsers = await app.db.query.user.findMany();
+
+        if (existingUsers.length > 0) {
+          app.logger.warn(
+            { userCount: existingUsers.length },
+            'Attempted to bootstrap admin user but users already exist'
+          );
+          return reply.status(403).send({
+            error: 'System is already set up. Contact your administrator to create additional users.',
+          });
+        }
+
+        // Generate a secure random password (12+ chars with letters, numbers, symbols)
+        const password = generateSecurePassword();
+
+        app.logger.info(
+          { email, passwordLength: password.length },
+          'Generated secure password for bootstrap'
+        );
+
+        // Use Better Auth API to create the admin user
+        // Call the auth endpoint through the fastify server
+        const signUpResponse = await fastify.inject({
+          method: 'POST',
+          url: '/api/auth/sign-up/email',
+          payload: {
+            email,
+            password,
+            name,
+          },
+        });
+
+        if (signUpResponse.statusCode !== 200 && signUpResponse.statusCode !== 201) {
+          let errorMessage = 'Failed to create user';
+          try {
+            const errorData = JSON.parse(signUpResponse.body);
+            errorMessage = errorData?.message || errorData?.error || errorMessage;
+          } catch {
+            // Could not parse error response, use default message
+          }
+
+          app.logger.error(
+            { email, statusCode: signUpResponse.statusCode, body: signUpResponse.body },
+            'Failed to bootstrap admin user via Better Auth'
+          );
+
+          return reply.status(400).send({
+            error: errorMessage,
+          });
+        }
+
+        let result: any;
+        try {
+          result = JSON.parse(signUpResponse.body);
+        } catch {
+          app.logger.error(
+            { email, body: signUpResponse.body },
+            'Could not parse Better Auth response'
+          );
+
+          return reply.status(400).send({
+            error: 'Failed to parse auth response',
+          });
+        }
+
+        if (!result.user) {
+          app.logger.error(
+            { email, response: result },
+            'Better Auth did not return user after signup'
+          );
+
+          return reply.status(400).send({
+            error: 'Failed to create user: no user returned',
+          });
+        }
+
+        // Log the bootstrap credentials to console for admin visibility
+        console.log('\n✅ ADMIN BOOTSTRAP SUCCESSFUL');
+        console.log('═══════════════════════════════════════════════════');
+        console.log(`📧 Email:    ${email}`);
+        console.log(`🔐 Password: ${password}`);
+        console.log('═══════════════════════════════════════════════════');
+        console.log('⚠️  IMPORTANT: Save this password and change it after first login!\n');
+
+        app.logger.info(
+          { userId: result.user.id, email },
+          'Bootstrap admin user created successfully'
+        );
+
+        return reply.status(201).send({
+          success: true,
+          message: 'Admin user created successfully',
+          email,
+          password,
+          instructions: 'Please save this password and change it after first login',
+        });
+      } catch (error) {
+        app.logger.error(
+          { err: error, email },
+          'Error bootstrapping admin user'
+        );
+
+        return reply.status(400).send({
+          error: error instanceof Error ? error.message : 'Failed to bootstrap admin user',
         });
       }
     }
