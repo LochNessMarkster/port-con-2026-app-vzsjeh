@@ -153,24 +153,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Stats Section */}
-        <View style={styles.section}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{sessions.length}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{speakers.length}</Text>
-              <Text style={styles.statLabel}>Speakers</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{exhibitors.length}</Text>
-              <Text style={styles.statLabel}>Exhibitors</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Featured Sponsor */}
         {featuredSponsor && (
           <View style={styles.section}>
@@ -255,60 +237,62 @@ export default function HomeScreen() {
         )}
 
         {/* Upcoming Sessions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
-          {upcomingSessions.map((session, index) => {
-            const sessionTimeText = formatTime(session.start_time);
-            const sessionDateText = formatDate(session.start_time);
-            const sessionTypeText = session.type;
-            const sessionRoomName = session.room?.name;
-            const sessionTrackText = session.track;
-            const speakersText = session.speakers.map(s => s.name).join(', ');
-            
-            return (
-              <React.Fragment key={index}>
-                <TouchableOpacity
-                  style={styles.sessionCard}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.sessionHeader}>
-                    <View style={styles.sessionTime}>
-                      <Text style={styles.sessionTimeText}>
-                        {sessionTimeText}
+        {upcomingSessions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
+            {upcomingSessions.map((session, index) => {
+              const sessionTimeText = formatTime(session.start_time);
+              const sessionDateText = formatDate(session.start_time);
+              const sessionTypeText = session.type;
+              const sessionRoomName = session.room?.name;
+              const sessionTrackText = session.track;
+              const speakersText = session.speakers.map(s => s.name).join(', ');
+              
+              return (
+                <React.Fragment key={index}>
+                  <TouchableOpacity
+                    style={styles.sessionCard}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sessionHeader}>
+                      <View style={styles.sessionTime}>
+                        <Text style={styles.sessionTimeText}>
+                          {sessionTimeText}
+                        </Text>
+                        <Text style={styles.sessionDate}>
+                          {sessionDateText}
+                        </Text>
+                      </View>
+                      <View style={[styles.sessionTypeBadge, { backgroundColor: getTypeColor(session.type) }]}>
+                        <Text style={styles.sessionTypeBadgeText}>{sessionTypeText}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.sessionTitle}>{session.title}</Text>
+                    {session.speakers.length > 0 && (
+                      <Text style={styles.sessionSpeakers}>
+                        {speakersText}
                       </Text>
-                      <Text style={styles.sessionDate}>
-                        {sessionDateText}
-                      </Text>
+                    )}
+                    <View style={styles.sessionFooter}>
+                      <View style={styles.sessionRoom}>
+                        <IconSymbol
+                          ios_icon_name="location"
+                          android_material_icon_name="place"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.sessionRoomText}>{sessionRoomName}</Text>
+                      </View>
+                      <View style={[styles.trackBadge, { backgroundColor: colors.highlight }]}>
+                        <Text style={styles.trackBadgeText}>{sessionTrackText}</Text>
+                      </View>
                     </View>
-                    <View style={[styles.sessionTypeBadge, { backgroundColor: getTypeColor(session.type) }]}>
-                      <Text style={styles.sessionTypeBadgeText}>{sessionTypeText}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.sessionTitle}>{session.title}</Text>
-                  {session.speakers.length > 0 && (
-                    <Text style={styles.sessionSpeakers}>
-                      {speakersText}
-                    </Text>
-                  )}
-                  <View style={styles.sessionFooter}>
-                    <View style={styles.sessionRoom}>
-                      <IconSymbol
-                        ios_icon_name="location"
-                        android_material_icon_name="place"
-                        size={16}
-                        color={colors.textSecondary}
-                      />
-                      <Text style={styles.sessionRoomText}>{sessionRoomName}</Text>
-                    </View>
-                    <View style={[styles.trackBadge, { backgroundColor: colors.highlight }]}>
-                      <Text style={styles.trackBadgeText}>{sessionTrackText}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </React.Fragment>
-            );
-          })}
-        </View>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        )}
 
         {/* Bottom padding for tab bar */}
         <View style={{ height: 100 }} />
@@ -419,30 +403,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
   },
   featuredCard: {
     backgroundColor: colors.card,

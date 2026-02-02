@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { authenticatedPost, authenticatedGet, authenticatedDelete } from '@/utils/api';
 
 // Configure notification behavior
@@ -68,34 +69,48 @@ export function usePushNotifications() {
       }
       
       if (finalStatus !== 'granted') {
-        console.log('[Notifications] Failed to get push token for push notification!');
+        console.log('[Notifications] Permission not granted for push notifications');
         setLoading(false);
         return;
       }
 
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // This will be configured in app.json
-      });
-      const token = tokenData.data;
+      // Get project ID from app.json
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       
-      console.log('[Notifications] Expo push token:', token);
-      setExpoPushToken(token);
+      if (!projectId) {
+        console.log('[Notifications] No project ID found - push notifications will work locally only');
+        setLoading(false);
+        return;
+      }
 
-      // Register token with backend
       try {
-        const result = await authenticatedPost('/api/notifications/register', {
-          token,
-          platform: Platform.OS,
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId,
         });
-        console.log('[Notifications] Token registered with backend:', result);
-      } catch (error) {
-        console.error('[Notifications] Error registering token:', error);
-        // Don't throw - continue even if registration fails
+        const token = tokenData.data;
+        
+        console.log('[Notifications] Expo push token:', token);
+        setExpoPushToken(token);
+
+        // Register token with backend
+        try {
+          const result = await authenticatedPost('/api/notifications/register', {
+            token,
+            platform: Platform.OS,
+          });
+          console.log('[Notifications] Token registered with backend:', result);
+        } catch (error) {
+          console.log('[Notifications] Could not register token with backend (backend may not be available):', error);
+          // Don't throw - continue even if registration fails
+        }
+      } catch (tokenError: any) {
+        console.log('[Notifications] Could not get push token (this is normal in Expo Go):', tokenError.message);
+        // Don't throw - this is expected in Expo Go
       }
 
       setLoading(false);
-    } catch (error) {
-      console.error('[Notifications] Error setting up push notifications:', error);
+    } catch (error: any) {
+      console.log('[Notifications] Error setting up push notifications:', error.message);
       setLoading(false);
     }
   };
@@ -115,7 +130,7 @@ export function usePushNotifications() {
       setScheduledNotifications(transformedNotifications);
       console.log('[Notifications] Loaded', transformedNotifications.length, 'scheduled notifications');
     } catch (error) {
-      console.error('[Notifications] Error loading scheduled notifications:', error);
+      console.log('[Notifications] Could not load scheduled notifications (backend may not be available)');
       // Set empty array on error
       setScheduledNotifications([]);
     }
@@ -134,7 +149,7 @@ export function usePushNotifications() {
       await loadScheduledNotifications();
       return true;
     } catch (error) {
-      console.error('[Notifications] Error scheduling notification:', error);
+      console.log('[Notifications] Could not schedule notification (backend may not be available)');
       return false;
     }
   };
@@ -149,7 +164,7 @@ export function usePushNotifications() {
       console.log('[Notifications] Notification canceled');
       return true;
     } catch (error) {
-      console.error('[Notifications] Error canceling notification:', error);
+      console.log('[Notifications] Could not cancel notification (backend may not be available)');
       return false;
     }
   };
