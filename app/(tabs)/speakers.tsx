@@ -44,7 +44,7 @@ export default function SpeakersScreen() {
     };
 
     fetchFromAirtable();
-  }, []);
+  }, [setSpeakers]);
 
   // Sort speakers alphabetically by last name
   const sortedSpeakers = React.useMemo(() => {

@@ -8,19 +8,34 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Session } from '@/types/conference';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function ScheduleScreen() {
   const { sessions, loading } = useConferenceData();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { 
+    scheduleNotification, 
+    cancelNotification, 
+    isNotificationScheduled,
+    scheduledNotifications,
+    loading: notificationsLoading 
+  } = usePushNotifications();
   const [selectedDay, setSelectedDay] = useState<'day1' | 'day2'>('day1');
   const [searchQuery, setSearchQuery] = useState('');
+  const [notificationModal, setNotificationModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
 
   const day1Sessions = sessions.filter(s => s.start_time.includes('2026-03-24'));
   const day2Sessions = sessions.filter(s => s.start_time.includes('2026-03-25'));
@@ -56,6 +71,49 @@ export default function ScheduleScreen() {
     }
     const minsText = `${minutes}m`;
     return minsText;
+  };
+
+  const handleToggleNotification = async (session: Session) => {
+    const hasNotification = isNotificationScheduled(session.id);
+    
+    if (hasNotification) {
+      // Cancel notification
+      const notification = scheduledNotifications.find(n => n.sessionId === session.id);
+      if (notification) {
+        console.log('[Schedule] Canceling notification for session:', session.title);
+        const success = await cancelNotification(notification.id);
+        if (success) {
+          setNotificationModal({
+            visible: true,
+            message: `Notification canceled for "${session.title}"`,
+            type: 'success',
+          });
+        } else {
+          setNotificationModal({
+            visible: true,
+            message: 'Failed to cancel notification. Please try again.',
+            type: 'error',
+          });
+        }
+      }
+    } else {
+      // Schedule notification (15 minutes before)
+      console.log('[Schedule] Scheduling notification for session:', session.title);
+      const success = await scheduleNotification(session.id, session.title, session.start_time, 15);
+      if (success) {
+        setNotificationModal({
+          visible: true,
+          message: `You'll be notified 15 minutes before "${session.title}" starts`,
+          type: 'success',
+        });
+      } else {
+        setNotificationModal({
+          visible: true,
+          message: 'Failed to schedule notification. Please enable notifications in your device settings.',
+          type: 'error',
+        });
+      }
+    }
   };
 
   return (
@@ -115,6 +173,7 @@ export default function ScheduleScreen() {
       >
         {filteredSessions.map((session, index) => {
           const bookmarked = isBookmarked(session.id);
+          const hasNotification = isNotificationScheduled(session.id);
           const typeColor = getTypeColor(session.type);
           const startTime = formatTime(session.start_time);
           const endTime = formatTime(session.end_time);
@@ -136,17 +195,38 @@ export default function ScheduleScreen() {
                       {endTime}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => toggleBookmark(session.id)}
-                    style={styles.bookmarkButton}
-                  >
-                    <IconSymbol
-                      ios_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
-                      android_material_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
-                      size={24}
-                      color={bookmarked ? colors.primary : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      onPress={() => handleToggleNotification(session)}
+                      style={styles.notificationButton}
+                      disabled={notificationsLoading}
+                    >
+                      {notificationsLoading ? (
+                        <ActivityIndicator size="small" color={colors.textSecondary} />
+                      ) : (
+                        <IconSymbol
+                          ios_icon_name={hasNotification ? 'notifications' : 'notifications'}
+                          android_material_icon_name={hasNotification ? 'notifications' : 'notifications'}
+                          size={22}
+                          color={hasNotification ? colors.secondary : colors.textSecondary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log('[Schedule] Toggling bookmark for session:', session.title);
+                        toggleBookmark(session.id, session.title, session.start_time);
+                      }}
+                      style={styles.bookmarkButton}
+                    >
+                      <IconSymbol
+                        ios_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
+                        android_material_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
+                        size={24}
+                        color={bookmarked ? colors.primary : colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={styles.sessionMeta}>
@@ -207,6 +287,16 @@ export default function ScheduleScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <ConfirmModal
+        visible={notificationModal.visible}
+        title={notificationModal.type === 'success' ? 'Notification Set' : 'Notification Error'}
+        message={notificationModal.message}
+        type={notificationModal.type}
+        confirmText="OK"
+        onConfirm={() => setNotificationModal({ visible: false, message: '', type: 'success' })}
+        onClose={() => setNotificationModal({ visible: false, message: '', type: 'success' })}
+      />
     </SafeAreaView>
   );
 }
@@ -325,6 +415,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
     color: colors.textSecondary,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notificationButton: {
+    padding: 4,
   },
   bookmarkButton: {
     padding: 4,

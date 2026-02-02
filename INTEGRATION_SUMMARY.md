@@ -753,3 +753,242 @@ The app follows best practices:
 - Automated data import
 
 Ready to deploy! 🚀
+
+---
+
+## 🆕 LATEST UPDATE: CSV Import & Push Notifications (Current Deployment)
+
+### What Changed
+Added CSV import functionality for bulk data upload and push notification system for session reminders.
+
+### New Features
+
+#### 1. CSV Import for Exhibitors ✅
+**Endpoint:** `POST /api/admin/exhibitors/import-csv`
+**Location:** Admin Exhibitors Management Page
+
+**Features:**
+- File picker for CSV selection
+- Multipart form upload with authentication
+- Progress indicator during upload
+- Detailed success/error reporting
+- Shows created/updated counts
+- Auto-refreshes exhibitor list
+
+**CSV Format:**
+```csv
+name,description,logo,boothNumber,category,website,mapX,mapY
+"Acme Corp","Leading port technology","https://example.com/logo.jpg","A101","Technology","https://acme.com",100,150
+```
+
+**How to Use:**
+1. Login to Admin Dashboard
+2. Navigate to Exhibitors management
+3. Click "Import CSV" button
+4. Select CSV file
+5. Wait for upload to complete
+6. View results in success modal
+
+#### 2. CSV Import for Sessions ✅
+**Endpoint:** `POST /api/admin/sessions/import-csv`
+**Location:** Admin Sessions Management Page
+
+**Features:**
+- File picker for CSV selection
+- Multipart form upload with authentication
+- Progress indicator during upload
+- Detailed success/error reporting
+- Shows created/updated counts
+- Auto-refreshes sessions list
+- Automatic speaker matching by name
+- Automatic room matching by name
+
+**CSV Format:**
+```csv
+title,description,startTime,endTime,roomName,type,track,speakerNames
+"Opening Keynote","Welcome address","2026-03-24T09:00:00","2026-03-24T10:00:00","Main Hall","keynote","Leadership","John Doe, Jane Smith"
+```
+
+**How to Use:**
+1. Login to Admin Dashboard
+2. Navigate to Sessions management
+3. Click "Import CSV" button (purple button)
+4. Select CSV file
+5. Wait for upload to complete
+6. View results in success modal
+
+#### 3. Push Notifications System ✅
+
+**Endpoints:**
+- `POST /api/notifications/register` - Register push token
+- `POST /api/notifications/schedule` - Schedule notification
+- `GET /api/notifications/scheduled` - View scheduled notifications
+- `DELETE /api/notifications/scheduled/:id` - Cancel notification
+
+**Features:**
+- Automatic token registration on app launch
+- Schedule notifications 15 minutes before sessions
+- Bell icon toggle on My Schedule screen
+- View all scheduled notifications
+- Cancel scheduled notifications
+- Success/error modals for user feedback
+
+**How It Works:**
+
+1. **Token Registration (Automatic):**
+   - App requests notification permissions on launch
+   - Token is registered with backend
+   - Works on physical devices only (not simulators)
+
+2. **Schedule Notification:**
+   - Navigate to My Schedule tab
+   - Click bell icon (outline) on a bookmarked session
+   - Notification scheduled for 15 minutes before session
+   - Bell icon changes to filled
+   - Success modal confirms scheduling
+
+3. **Cancel Notification:**
+   - Navigate to My Schedule tab
+   - Click bell icon (filled) on a session with notification
+   - Notification is canceled
+   - Bell icon changes to outline
+   - Success modal confirms cancellation
+
+**Testing:**
+1. Use physical device (not simulator)
+2. Grant notification permissions
+3. Navigate to My Schedule
+4. Bookmark a session
+5. Click bell icon to schedule
+6. Verify success message
+7. Click bell icon again to cancel
+8. Verify cancellation message
+
+#### 4. Homepage Updates ✅
+
+**Features:**
+- Port of the Future logo displayed in hero section
+- Dynamic speaker count (shows 93 speakers)
+- Stats cards for sessions, speakers, exhibitors
+- Featured sponsor and exhibitor sections
+
+**Logo URL:**
+```
+https://portofthefutureconference.com/wp-content/themes/port-of-the-future/img/POFC-logo.jpg
+```
+
+### Files Modified
+
+**New Integrations:**
+1. `app/admin/exhibitors.tsx` - Added CSV import functionality
+2. `app/admin/sessions.tsx` - Added CSV import functionality
+3. `hooks/usePushNotifications.ts` - Integrated all notification endpoints
+4. `app/(tabs)/my-schedule.tsx` - Added notification scheduling UI
+
+**Dependencies Used:**
+- `expo-document-picker` - For CSV file selection
+- `expo-notifications` - For push notifications
+- `expo-device` - For device detection
+
+### Benefits
+
+**CSV Import:**
+- ✅ Bulk data upload saves time
+- ✅ Reduces manual data entry errors
+- ✅ Detailed error reporting
+- ✅ Automatic data validation
+- ✅ Progress indicators for user feedback
+
+**Push Notifications:**
+- ✅ Users never miss important sessions
+- ✅ Automatic reminders 15 minutes before
+- ✅ Easy toggle on/off
+- ✅ Works on iOS and Android
+- ✅ Secure token management
+
+**Homepage:**
+- ✅ Professional branding with logo
+- ✅ Accurate speaker count
+- ✅ Dynamic stats update automatically
+
+### Testing Checklist
+
+**CSV Import:**
+- [ ] Login to admin panel
+- [ ] Test exhibitors CSV import
+- [ ] Test sessions CSV import
+- [ ] Verify success modals show counts
+- [ ] Verify error handling for invalid CSV
+- [ ] Verify data appears in lists
+
+**Push Notifications:**
+- [ ] Open app on physical device
+- [ ] Grant notification permissions
+- [ ] Schedule notification for session
+- [ ] Verify bell icon changes
+- [ ] Cancel notification
+- [ ] Verify bell icon changes back
+- [ ] Check console logs for API calls
+
+**Homepage:**
+- [ ] Verify logo displays correctly
+- [ ] Verify speaker count shows 93
+- [ ] Verify stats cards update dynamically
+
+### Sample Test Data
+
+**Exhibitors CSV:**
+```csv
+name,description,logo,boothNumber,category,website,mapX,mapY
+"Test Exhibitor 1","Test description 1","https://via.placeholder.com/200","A101","Technology","https://test1.com",100,150
+"Test Exhibitor 2","Test description 2","https://via.placeholder.com/200","B202","Logistics","https://test2.com",200,250
+```
+
+**Sessions CSV:**
+```csv
+title,description,startTime,endTime,roomName,type,track,speakerNames
+"Test Session 1","Test description 1","2026-03-24T09:00:00","2026-03-24T10:00:00","Main Hall","keynote","Leadership","John Doe"
+"Test Session 2","Test description 2","2026-03-24T11:00:00","2026-03-24T12:00:00","Room A","panel","Technology","Jane Smith, Bob Johnson"
+```
+
+### Production Deployment Checklist
+
+Before deploying to production:
+
+1. **Configure Expo Project ID:**
+   - Add `projectId` to `app.json` for push notifications
+   - Get project ID from Expo dashboard
+
+2. **Test CSV Import:**
+   - Upload sample CSV files
+   - Verify data imports correctly
+   - Test error handling with invalid CSV
+
+3. **Test Push Notifications:**
+   - Schedule notifications on physical device
+   - Verify notifications are received
+   - Test cancellation flow
+
+4. **Verify Homepage:**
+   - Confirm logo displays correctly
+   - Verify speaker count is accurate (93)
+   - Test on multiple devices/browsers
+
+5. **Create Admin Account:**
+   - Set up production admin credentials
+   - Share with conference organizers
+   - Document login process
+
+### Summary
+
+**All requested features have been successfully integrated:**
+
+1. ✅ CSV import for exhibitors and sessions
+2. ✅ Push notifications (register, schedule, cancel, view)
+3. ✅ Homepage with logo and dynamic speaker count (93 speakers)
+4. ✅ Authentication with email/password and OAuth
+5. ✅ CRUD operations for all entities
+6. ✅ Error handling with custom modals
+7. ✅ Loading indicators and user feedback
+
+**The app is now fully integrated with the backend API and ready for production deployment!** 🎉

@@ -89,8 +89,11 @@ export default function HomeScreen() {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.heroContent}>
-              <Text style={styles.heroTitle}>Port of the Future</Text>
-              <Text style={styles.heroSubtitle}>Conference 2026</Text>
+              <Image
+                source={{ uri: 'https://portofthefutureconference.com/wp-content/themes/port-of-the-future/img/POFC-logo.jpg' }}
+                style={styles.heroLogo}
+                resizeMode="contain"
+              />
               <View style={styles.heroDetails}>
                 <View style={styles.heroDetailItem}>
                   <IconSymbol
@@ -339,18 +342,9 @@ const styles = StyleSheet.create({
   heroContent: {
     alignItems: 'center',
   },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
+  heroLogo: {
+    width: 280,
+    height: 120,
     marginBottom: 20,
   },
   heroDetails: {

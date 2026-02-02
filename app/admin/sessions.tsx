@@ -16,8 +16,9 @@ import { colors } from '@/styles/commonStyles';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Session, Room, Speaker } from '@/types/conference';
-import { apiGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
+import { apiGet, authenticatedPost, authenticatedPut, authenticatedDelete, BACKEND_URL, getBearerToken } from '@/utils/api';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import * as DocumentPicker from 'expo-document-picker';
 
 function SessionsManagementContent() {
   const router = useRouter();
@@ -32,7 +33,13 @@ function SessionsManagementContent() {
     session: null,
   });
   const [scraping, setScraping] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [scrapeResultModal, setScrapeResultModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+  const [importResultModal, setImportResultModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
     visible: false,
     message: '',
     type: 'success',
@@ -159,6 +166,74 @@ function SessionsManagementContent() {
         visible: true,
         message: error instanceof Error ? error.message : 'Failed to delete session',
       });
+    }
+  };
+
+  const handleImportCSV = async () => {
+    try {
+      console.log('[Admin] Opening document picker for CSV import...');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'text/csv',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        console.log('[Admin] CSV import canceled');
+        return;
+      }
+
+      const file = result.assets[0];
+      console.log('[Admin] Selected file:', file.name);
+
+      setImporting(true);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: 'text/csv',
+      } as any);
+
+      console.log('[Admin] Uploading CSV to backend...');
+      
+      // Upload CSV to backend
+      const response = await fetch(`${BACKEND_URL}/api/admin/sessions/import-csv`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await getBearerToken()}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+
+      const importResult = await response.json();
+      console.log('[Admin] CSV import result:', importResult);
+
+      const errorMessages = importResult.errors && importResult.errors.length > 0 
+        ? `\n\nErrors:\n${importResult.errors.join('\n')}` 
+        : '';
+
+      setImportResultModal({
+        visible: true,
+        message: `Successfully imported sessions!\n\nCreated: ${importResult.created}\nUpdated: ${importResult.updated}${errorMessages}`,
+        type: importResult.errors && importResult.errors.length > 0 ? 'error' : 'success',
+      });
+
+      console.log('[Admin] CSV import completed');
+    } catch (error) {
+      console.error('[Admin] Error importing CSV:', error);
+      setImportResultModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to import CSV',
+        type: 'error',
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -456,6 +531,25 @@ function SessionsManagementContent() {
         <Text style={styles.headerTitle}>Manage Sessions</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity 
+            style={styles.importButton} 
+            onPress={handleImportCSV}
+            disabled={importing}
+          >
+            {importing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <IconSymbol
+                  ios_icon_name="cloud-upload"
+                  android_material_icon_name="cloud-upload"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.importButtonText}>Import CSV</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={styles.scrapeButton} 
             onPress={handleScrapeSchedule}
             disabled={scraping}
@@ -578,6 +672,21 @@ function SessionsManagementContent() {
         onConfirm={() => setErrorModal({ visible: false, message: '' })}
         onClose={() => setErrorModal({ visible: false, message: '' })}
       />
+
+      <ConfirmModal
+        visible={importResultModal.visible}
+        title={importResultModal.type === 'success' ? 'Import Status' : 'Import Failed'}
+        message={importResultModal.message}
+        type={importResultModal.type}
+        confirmText="OK"
+        onConfirm={() => {
+          setImportResultModal({ visible: false, message: '', type: 'success' });
+          if (importResultModal.type === 'success') {
+            fetchData();
+          }
+        }}
+        onClose={() => setImportResultModal({ visible: false, message: '', type: 'success' })}
+      />
     </SafeAreaView>
   );
 }
@@ -628,6 +737,20 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  importButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   scrapeButton: {
     flexDirection: 'row',

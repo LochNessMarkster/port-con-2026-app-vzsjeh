@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,33 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function MyScheduleScreen() {
   const { sessions } = useConferenceData();
   const { bookmarkedSessions, toggleBookmark } = useBookmarks();
+  const { 
+    scheduleNotification, 
+    cancelNotification, 
+    isNotificationScheduled,
+    scheduledNotifications,
+    loading: notificationsLoading 
+  } = usePushNotifications();
+  
+  const [notificationModal, setNotificationModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+  const [processingNotification, setProcessingNotification] = useState<string | null>(null);
 
   const bookmarkedSessionsList = sessions
     .filter(s => bookmarkedSessions.has(s.id))
@@ -37,6 +54,57 @@ export default function MyScheduleScreen() {
     const endDate = new Date(end);
     const minutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
     return `${minutes} min`;
+  };
+
+  const handleToggleNotification = async (sessionId: string, sessionTitle: string, sessionStartTime: string) => {
+    setProcessingNotification(sessionId);
+    
+    try {
+      const existingNotification = scheduledNotifications.find(n => n.sessionId === sessionId);
+      
+      if (existingNotification) {
+        // Cancel the existing notification
+        const success = await cancelNotification(existingNotification.id);
+        if (success) {
+          setNotificationModal({
+            visible: true,
+            message: 'Notification reminder removed',
+            type: 'success',
+          });
+        } else {
+          setNotificationModal({
+            visible: true,
+            message: 'Failed to remove notification',
+            type: 'error',
+          });
+        }
+      } else {
+        // Schedule a new notification (15 minutes before)
+        const success = await scheduleNotification(sessionId, sessionTitle, sessionStartTime, 15);
+        if (success) {
+          setNotificationModal({
+            visible: true,
+            message: 'You will be notified 15 minutes before this session',
+            type: 'success',
+          });
+        } else {
+          setNotificationModal({
+            visible: true,
+            message: 'Failed to schedule notification. Please enable notifications in settings.',
+            type: 'error',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[MySchedule] Error toggling notification:', error);
+      setNotificationModal({
+        visible: true,
+        message: 'An error occurred. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setProcessingNotification(null);
+    }
   };
 
   return (
@@ -89,17 +157,35 @@ export default function MyScheduleScreen() {
                           {getDuration(session.start_time, session.end_time)}
                         </Text>
                       </View>
-                      <TouchableOpacity
-                        onPress={() => toggleBookmark(session.id)}
-                        style={styles.bookmarkButton}
-                      >
-                        <IconSymbol
-                          ios_icon_name="favorite"
-                          android_material_icon_name="favorite"
-                          size={24}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          onPress={() => handleToggleNotification(session.id, session.title, session.start_time)}
+                          style={styles.notificationButton}
+                          disabled={processingNotification === session.id}
+                        >
+                          {processingNotification === session.id ? (
+                            <ActivityIndicator size="small" color={colors.secondary} />
+                          ) : (
+                            <IconSymbol
+                              ios_icon_name={isNotificationScheduled(session.id) ? 'notifications' : 'notifications-none'}
+                              android_material_icon_name={isNotificationScheduled(session.id) ? 'notifications' : 'notifications-none'}
+                              size={24}
+                              color={isNotificationScheduled(session.id) ? colors.secondary : colors.textSecondary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => toggleBookmark(session.id)}
+                          style={styles.bookmarkButton}
+                        >
+                          <IconSymbol
+                            ios_icon_name="favorite"
+                            android_material_icon_name="favorite"
+                            size={24}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </View>
 
                     <View style={[styles.typeBadge, { backgroundColor: getTypeColor(session.type) }]}>
@@ -145,6 +231,16 @@ export default function MyScheduleScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <ConfirmModal
+        visible={notificationModal.visible}
+        title={notificationModal.type === 'success' ? 'Success' : 'Error'}
+        message={notificationModal.message}
+        type={notificationModal.type}
+        confirmText="OK"
+        onConfirm={() => setNotificationModal({ visible: false, message: '', type: 'success' })}
+        onClose={() => setNotificationModal({ visible: false, message: '', type: 'success' })}
+      />
     </SafeAreaView>
   );
 }
@@ -244,6 +340,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  notificationButton: {
+    padding: 4,
   },
   bookmarkButton: {
     padding: 4,

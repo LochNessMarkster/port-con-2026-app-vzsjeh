@@ -19,6 +19,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { Exhibitor } from '@/types/conference';
 import { apiGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import * as DocumentPicker from 'expo-document-picker';
 
 function ExhibitorsManagementContent() {
   const router = useRouter();
@@ -26,9 +27,15 @@ function ExhibitorsManagementContent() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editingExhibitor, setEditingExhibitor] = useState<Exhibitor | null>(null);
+  const [importing, setImporting] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ visible: boolean; exhibitor: Exhibitor | null }>({
     visible: false,
     exhibitor: null,
+  });
+  const [importResultModal, setImportResultModal] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({
+    visible: false,
+    message: '',
+    type: 'success',
   });
 
   const [formData, setFormData] = useState({
@@ -57,6 +64,76 @@ function ExhibitorsManagementContent() {
       console.error('[Admin] Error fetching exhibitors:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImportCSV = async () => {
+    try {
+      console.log('[Admin] Opening document picker for CSV import...');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'text/csv',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        console.log('[Admin] CSV import canceled');
+        return;
+      }
+
+      const file = result.assets[0];
+      console.log('[Admin] Selected file:', file.name);
+
+      setImporting(true);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: 'text/csv',
+      } as any);
+
+      console.log('[Admin] Uploading CSV to backend...');
+      
+      // Upload CSV to backend
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { BACKEND_URL, getBearerToken } = require('@/utils/api');
+      const response = await fetch(`${BACKEND_URL}/api/admin/exhibitors/import-csv`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await getBearerToken()}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+
+      const importResult = await response.json();
+      console.log('[Admin] CSV import result:', importResult);
+
+      const errorMessages = importResult.errors && importResult.errors.length > 0 
+        ? `\n\nErrors:\n${importResult.errors.join('\n')}` 
+        : '';
+
+      setImportResultModal({
+        visible: true,
+        message: `Successfully imported exhibitors!\n\nCreated: ${importResult.created}\nUpdated: ${importResult.updated}${errorMessages}`,
+        type: importResult.errors && importResult.errors.length > 0 ? 'error' : 'success',
+      });
+
+      console.log('[Admin] CSV import initiated');
+    } catch (error) {
+      console.error('[Admin] Error importing CSV:', error);
+      setImportResultModal({
+        visible: true,
+        message: error instanceof Error ? error.message : 'Failed to import CSV',
+        type: 'error',
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -293,15 +370,36 @@ function ExhibitorsManagementContent() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Exhibitors</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
-          <IconSymbol
-            ios_icon_name="add"
-            android_material_icon_name="add"
-            size={20}
-            color="#FFFFFF"
-          />
-          <Text style={styles.addButtonText}>Add Exhibitor</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.importButton} 
+            onPress={handleImportCSV}
+            disabled={importing}
+          >
+            {importing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <IconSymbol
+                  ios_icon_name="cloud-upload"
+                  android_material_icon_name="cloud-upload"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.importButtonText}>Import CSV</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+            <IconSymbol
+              ios_icon_name="add"
+              android_material_icon_name="add"
+              size={20}
+              color="#FFFFFF"
+            />
+            <Text style={styles.addButtonText}>Add Exhibitor</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -379,6 +477,21 @@ function ExhibitorsManagementContent() {
         onConfirm={confirmDelete}
         onClose={() => setDeleteModal({ visible: false, exhibitor: null })}
       />
+
+      <ConfirmModal
+        visible={importResultModal.visible}
+        title={importResultModal.type === 'success' ? 'Import Status' : 'Import Failed'}
+        message={importResultModal.message}
+        type={importResultModal.type}
+        confirmText="OK"
+        onConfirm={() => {
+          setImportResultModal({ visible: false, message: '', type: 'success' });
+          if (importResultModal.type === 'success') {
+            fetchExhibitors();
+          }
+        }}
+        onClose={() => setImportResultModal({ visible: false, message: '', type: 'success' })}
+      />
     </SafeAreaView>
   );
 }
@@ -425,6 +538,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: colors.text,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  importButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
