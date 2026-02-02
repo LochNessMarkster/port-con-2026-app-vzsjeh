@@ -19,15 +19,11 @@ import { useConferenceData } from '@/hooks/useConferenceData';
 export default function ExhibitorsScreen() {
   const { exhibitors, loading } = useConferenceData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const categories = Array.from(new Set(exhibitors.map(e => e.category)));
 
   const filteredExhibitors = exhibitors.filter(exhibitor => {
     const matchesSearch = exhibitor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          exhibitor.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || exhibitor.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   const openWebsite = (url?: string) => {
@@ -59,35 +55,6 @@ export default function ExhibitorsScreen() {
           onChangeText={setSearchQuery}
         />
       </View>
-
-      {/* Category Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
-        <TouchableOpacity
-          style={[styles.filterChip, !selectedCategory && styles.filterChipActive]}
-          onPress={() => setSelectedCategory(null)}
-        >
-          <Text style={[styles.filterChipText, !selectedCategory && styles.filterChipTextActive]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        {categories.map((category, index) => (
-          <React.Fragment key={index}>
-            <TouchableOpacity
-              style={[styles.filterChip, selectedCategory === category && styles.filterChipActive]}
-              onPress={() => setSelectedCategory(category)}
-            >
-              <Text style={[styles.filterChipText, selectedCategory === category && styles.filterChipTextActive]}>
-                {category}
-              </Text>
-            </TouchableOpacity>
-          </React.Fragment>
-        ))}
-      </ScrollView>
 
       <ScrollView
         style={styles.scrollView}
@@ -201,33 +168,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.text,
-  },
-  filterScroll: {
-    marginBottom: 16,
-  },
-  filterContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
