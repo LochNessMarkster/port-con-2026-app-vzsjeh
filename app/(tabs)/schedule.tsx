@@ -21,7 +21,7 @@ import { Session } from '@/types/conference';
 import { ConfirmModal, SkeletonLoader } from '@/components/ui/ConfirmModal';
 
 export default function ScheduleScreen() {
-  const { sessions, loading, refetch } = useConferenceData();
+  const { sessions, loading, refetch, isOffline, lastSyncTime } = useConferenceData();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { 
     scheduleNotification, 
@@ -125,10 +125,42 @@ export default function ScheduleScreen() {
     }
   };
 
+  const formatLastSync = () => {
+    if (!lastSyncTime) return 'Never';
+    const now = new Date();
+    const diff = now.getTime() - lastSyncTime.getTime();
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Schedule</Text>
+        <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLevel={1}>
+          Schedule
+        </Text>
+        {isOffline && (
+          <View style={styles.offlineBanner} accessibilityRole="alert">
+            <IconSymbol
+              ios_icon_name="cloud-off"
+              android_material_icon_name="cloud-off"
+              size={16}
+              color={colors.warning}
+            />
+            <Text style={styles.offlineBannerText}>
+              Offline Mode
+            </Text>
+            <Text style={styles.offlineBannerSubtext}>
+              Last synced: {formatLastSync()}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Search Bar */}
@@ -246,6 +278,9 @@ export default function ScheduleScreen() {
                       onPress={() => handleToggleNotification(session)}
                       style={styles.notificationButton}
                       disabled={notificationsLoading}
+                      accessibilityRole="button"
+                      accessibilityLabel={hasNotification ? 'Cancel notification reminder' : 'Set notification reminder'}
+                      accessibilityHint="Receive a notification 15 minutes before this session starts"
                     >
                       {notificationsLoading ? (
                         <ActivityIndicator size="small" color={colors.textSecondary} />
@@ -253,7 +288,7 @@ export default function ScheduleScreen() {
                         <IconSymbol
                           ios_icon_name={hasNotification ? 'notifications' : 'notifications'}
                           android_material_icon_name={hasNotification ? 'notifications' : 'notifications'}
-                          size={22}
+                          size={24}
                           color={hasNotification ? colors.secondary : colors.textSecondary}
                         />
                       )}
@@ -264,11 +299,14 @@ export default function ScheduleScreen() {
                         toggleBookmark(session.id, session.title, session.start_time);
                       }}
                       style={styles.bookmarkButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={bookmarked ? 'Remove from My Schedule' : 'Add to My Schedule'}
+                      accessibilityHint="Bookmark this session to add it to your personal schedule"
                     >
                       <IconSymbol
                         ios_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
                         android_material_icon_name={bookmarked ? 'favorite' : 'favorite-border'}
-                        size={24}
+                        size={26}
                         color={bookmarked ? colors.primary : colors.textSecondary}
                       />
                     </TouchableOpacity>
@@ -373,6 +411,28 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
   },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  offlineBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  offlineBannerSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#92400E',
+    opacity: 0.8,
+    marginLeft: 'auto',
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,13 +459,15 @@ const styles = StyleSheet.create({
   },
   dayTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
   },
   dayTabActive: {
     backgroundColor: colors.primary,
@@ -467,13 +529,21 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   notificationButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookmarkButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sessionMeta: {
     flexDirection: 'row',

@@ -22,9 +22,20 @@ export interface ScheduledNotification {
   scheduledFor: string;
 }
 
+export interface SessionChange {
+  id: string;
+  sessionId: string;
+  sessionTitle: string;
+  changeType: 'time_change' | 'room_change' | 'cancellation';
+  oldValue: string;
+  newValue: string;
+  createdAt: string;
+}
+
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
+  const [sessionChanges, setSessionChanges] = useState<SessionChange[]>([]);
   const [loading, setLoading] = useState(true);
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
@@ -32,10 +43,13 @@ export function usePushNotifications() {
   useEffect(() => {
     registerForPushNotificationsAsync();
     loadScheduledNotifications();
+    loadSessionChanges();
 
     // Listen for notifications
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('[Notifications] Notification received:', notification);
+      // Reload session changes when a notification is received
+      loadSessionChanges();
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
@@ -169,6 +183,31 @@ export function usePushNotifications() {
     }
   };
 
+  const loadSessionChanges = async () => {
+    try {
+      console.log('[Notifications] Loading session changes...');
+      const changes = await authenticatedGet<SessionChange[]>('/api/notifications/session-changes');
+      setSessionChanges(changes);
+      console.log('[Notifications] Loaded', changes.length, 'session changes');
+    } catch (error) {
+      console.log('[Notifications] Could not load session changes (backend may not be available)');
+      setSessionChanges([]);
+    }
+  };
+
+  const dismissSessionChange = async (changeId: string) => {
+    try {
+      console.log('[Notifications] Dismissing session change:', changeId);
+      // Remove from local state immediately (optimistic update)
+      setSessionChanges(prev => prev.filter(c => c.id !== changeId));
+      
+      // Note: Session changes are informational only and don't need to be marked as read on the backend
+      // The backend will automatically clean up old session changes after a certain period
+    } catch (error) {
+      console.log('[Notifications] Could not dismiss session change');
+    }
+  };
+
   const isNotificationScheduled = (sessionId: string): boolean => {
     return scheduledNotifications.some(n => n.sessionId === sessionId);
   };
@@ -176,10 +215,13 @@ export function usePushNotifications() {
   return {
     expoPushToken,
     scheduledNotifications,
+    sessionChanges,
     loading,
     scheduleNotification,
     cancelNotification,
     isNotificationScheduled,
     refreshScheduledNotifications: loadScheduledNotifications,
+    refreshSessionChanges: loadSessionChanges,
+    dismissSessionChange,
   };
 }

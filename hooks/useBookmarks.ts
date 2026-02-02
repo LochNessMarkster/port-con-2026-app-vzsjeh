@@ -9,7 +9,7 @@ const BOOKMARKS_KEY = '@conference_bookmarks';
 export function useBookmarks() {
   const [bookmarkedSessions, setBookmarkedSessions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const { scheduleNotification, cancelNotification, isNotificationScheduled } = usePushNotifications();
+  const { scheduleNotification, cancelNotification, isNotificationScheduled, scheduledNotifications } = usePushNotifications();
 
   useEffect(() => {
     loadBookmarks();
@@ -17,15 +17,30 @@ export function useBookmarks() {
 
   const loadBookmarks = async () => {
     try {
-      // Note: Session bookmarks are stored locally for now
-      // Future enhancement: Sync with backend API
-      const stored = await AsyncStorage.getItem(BOOKMARKS_KEY);
-      if (stored) {
-        setBookmarkedSessions(new Set(JSON.parse(stored)));
+      console.log('[Bookmarks] Loading bookmarked sessions...');
+      
+      // Try to load from backend first
+      try {
+        const response = await authenticatedGet<{ sessionId: string }[]>('/api/bookmarks/sessions');
+        const bookmarkIds = response.map(b => b.sessionId);
+        setBookmarkedSessions(new Set(bookmarkIds));
+        console.log('[Bookmarks] Loaded', bookmarkIds.length, 'bookmarked sessions from backend');
+        
+        // Save to local storage as cache
+        await AsyncStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarkIds));
+      } catch (error) {
+        console.log('[Bookmarks] Could not load from backend, using local cache');
+        
+        // Fallback to local storage
+        const stored = await AsyncStorage.getItem(BOOKMARKS_KEY);
+        if (stored) {
+          setBookmarkedSessions(new Set(JSON.parse(stored)));
+        }
       }
+      
       setLoading(false);
     } catch (error) {
-      console.error('Error loading bookmarks:', error);
+      console.error('[Bookmarks] Error loading bookmarks:', error);
       setLoading(false);
     }
   };
@@ -40,12 +55,19 @@ export function useBookmarks() {
         
         // Cancel notification if scheduled
         if (isNotificationScheduled(sessionId)) {
-          // Find the notification ID and cancel it
-          // This will be handled by the backend
+          const notification = scheduledNotifications.find(n => n.sessionId === sessionId);
+          if (notification) {
+            await cancelNotification(notification.id);
+          }
         }
         
-        // Note: Session bookmarks are stored locally for now
-        // Future enhancement: Sync with backend API
+        // Remove from backend
+        try {
+          await authenticatedDelete(`/api/bookmarks/sessions/${sessionId}`);
+          console.log('[Bookmarks] Removed bookmark from backend');
+        } catch (error) {
+          console.log('[Bookmarks] Could not remove bookmark from backend (will sync later)');
+        }
       } else {
         newBookmarks.add(sessionId);
         console.log('[Bookmarks] Added bookmark for session:', sessionId);
@@ -55,14 +77,19 @@ export function useBookmarks() {
           await scheduleNotification(sessionId, sessionTitle, sessionStartTime, 15);
         }
         
-        // Note: Session bookmarks are stored locally for now
-        // Future enhancement: Sync with backend API
+        // Add to backend
+        try {
+          await authenticatedPost(`/api/bookmarks/sessions/${sessionId}`, {});
+          console.log('[Bookmarks] Added bookmark to backend');
+        } catch (error) {
+          console.log('[Bookmarks] Could not add bookmark to backend (will sync later)');
+        }
       }
       
       setBookmarkedSessions(newBookmarks);
       await AsyncStorage.setItem(BOOKMARKS_KEY, JSON.stringify(Array.from(newBookmarks)));
     } catch (error) {
-      console.error('Error toggling bookmark:', error);
+      console.error('[Bookmarks] Error toggling bookmark:', error);
     }
   };
 
@@ -75,6 +102,7 @@ export function useBookmarks() {
     toggleBookmark,
     isBookmarked,
     loading,
+    refetch: loadBookmarks,
   };
 }
 

@@ -18,13 +18,15 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function MyScheduleScreen() {
-  const { sessions } = useConferenceData();
+  const { sessions, isOffline, lastSyncTime } = useConferenceData();
   const { bookmarkedSessions, toggleBookmark } = useBookmarks();
   const { 
     scheduleNotification, 
     cancelNotification, 
     isNotificationScheduled,
     scheduledNotifications,
+    sessionChanges,
+    dismissSessionChange,
     loading: notificationsLoading 
   } = usePushNotifications();
   
@@ -107,13 +109,48 @@ export default function MyScheduleScreen() {
     }
   };
 
+  const formatLastSync = () => {
+    if (!lastSyncTime) return 'Never';
+    const now = new Date();
+    const diff = now.getTime() - lastSyncTime.getTime();
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const sessionCount = bookmarkedSessionsList.length;
+  const sessionCountText = `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'} bookmarked`;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Schedule</Text>
-        <Text style={styles.headerSubtitle}>
-          {bookmarkedSessionsList.length} {bookmarkedSessionsList.length === 1 ? 'session' : 'sessions'} bookmarked
+        <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLevel={1}>
+          My Schedule
         </Text>
+        <Text style={styles.headerSubtitle} accessibilityLabel={sessionCountText}>
+          {sessionCountText}
+        </Text>
+        {isOffline && (
+          <View style={styles.offlineBanner} accessibilityRole="alert">
+            <IconSymbol
+              ios_icon_name="cloud-off"
+              android_material_icon_name="cloud-off"
+              size={16}
+              color={colors.warning}
+            />
+            <Text style={styles.offlineBannerText}>
+              Offline Mode
+            </Text>
+            <Text style={styles.offlineBannerSubtext}>
+              Last synced: {formatLastSync()}
+            </Text>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -121,6 +158,62 @@ export default function MyScheduleScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {sessionChanges.length > 0 && (
+          <View style={styles.changesSection}>
+            <Text style={styles.changesSectionTitle} accessibilityRole="header" accessibilityLevel={2}>
+              Session Updates
+            </Text>
+            {sessionChanges.map((change, index) => {
+              const changeIcon = change.changeType === 'cancellation' ? 'cancel' : 
+                                change.changeType === 'time_change' ? 'schedule' : 'place';
+              const changeColor = change.changeType === 'cancellation' ? colors.error : colors.warning;
+              
+              let changeDescription = '';
+              if (change.changeType === 'time_change') {
+                changeDescription = `Time changed from ${change.oldValue} to ${change.newValue}`;
+              } else if (change.changeType === 'room_change') {
+                changeDescription = `Room changed from ${change.oldValue} to ${change.newValue}`;
+              } else if (change.changeType === 'cancellation') {
+                changeDescription = 'This session has been cancelled';
+              }
+              
+              return (
+                <React.Fragment key={index}>
+                  <View style={[styles.changeCard, { borderLeftColor: changeColor }]} accessibilityRole="alert">
+                    <View style={styles.changeHeader}>
+                      <IconSymbol
+                        ios_icon_name={changeIcon}
+                        android_material_icon_name={changeIcon}
+                        size={20}
+                        color={changeColor}
+                      />
+                      <Text style={styles.changeTitle} numberOfLines={1}>
+                        {change.sessionTitle}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => dismissSessionChange(change.id)}
+                        style={styles.dismissButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Dismiss notification"
+                      >
+                        <IconSymbol
+                          ios_icon_name="close"
+                          android_material_icon_name="close"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.changeDescription}>
+                      {changeDescription}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        )}
+
         {bookmarkedSessionsList.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol
@@ -162,6 +255,9 @@ export default function MyScheduleScreen() {
                           onPress={() => handleToggleNotification(session.id, session.title, session.start_time)}
                           style={styles.notificationButton}
                           disabled={processingNotification === session.id}
+                          accessibilityRole="button"
+                          accessibilityLabel={isNotificationScheduled(session.id) ? 'Cancel notification reminder' : 'Set notification reminder'}
+                          accessibilityHint="Receive a notification 15 minutes before this session starts"
                         >
                           {processingNotification === session.id ? (
                             <ActivityIndicator size="small" color={colors.secondary} />
@@ -169,7 +265,7 @@ export default function MyScheduleScreen() {
                             <IconSymbol
                               ios_icon_name={isNotificationScheduled(session.id) ? 'notifications' : 'notifications-none'}
                               android_material_icon_name={isNotificationScheduled(session.id) ? 'notifications' : 'notifications-none'}
-                              size={24}
+                              size={26}
                               color={isNotificationScheduled(session.id) ? colors.secondary : colors.textSecondary}
                             />
                           )}
@@ -177,11 +273,14 @@ export default function MyScheduleScreen() {
                         <TouchableOpacity
                           onPress={() => toggleBookmark(session.id)}
                           style={styles.bookmarkButton}
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove from My Schedule"
+                          accessibilityHint="Remove this session from your bookmarked sessions"
                         >
                           <IconSymbol
                             ios_icon_name="favorite"
                             android_material_icon_name="favorite"
-                            size={24}
+                            size={26}
                             color={colors.primary}
                           />
                         </TouchableOpacity>
@@ -277,6 +376,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
   },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  offlineBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  offlineBannerSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#92400E',
+    opacity: 0.8,
+    marginLeft: 'auto',
+  },
   scrollView: {
     flex: 1,
   },
@@ -343,13 +464,21 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
   },
   notificationButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookmarkButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   typeBadge: {
     paddingHorizontal: 12,
@@ -408,5 +537,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.text,
+  },
+  changesSection: {
+    marginBottom: 24,
+  },
+  changesSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  changeCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 4,
+  },
+  changeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  changeTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  dismissButton: {
+    padding: 4,
+    minWidth: 32,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changeDescription: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });

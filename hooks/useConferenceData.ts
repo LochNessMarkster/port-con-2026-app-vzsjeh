@@ -2,6 +2,22 @@
 import { useState, useEffect } from 'react';
 import { Session, Speaker, Exhibitor, Sponsor, Room, Port } from '@/types/conference';
 import { apiGet, isBackendConfigured } from '@/utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+
+// Offline cache keys
+const CACHE_KEYS = {
+  SESSIONS: '@conference_cache_sessions',
+  SPEAKERS: '@conference_cache_speakers',
+  EXHIBITORS: '@conference_cache_exhibitors',
+  SPONSORS: '@conference_cache_sponsors',
+  ROOMS: '@conference_cache_rooms',
+  PORTS: '@conference_cache_ports',
+  LAST_SYNC: '@conference_cache_last_sync',
+};
+
+// Cache expiry time (24 hours)
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 export function useConferenceData() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -12,90 +28,247 @@ export function useConferenceData() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    // Monitor network connectivity
+    const unsubscribe = NetInfo.addEventListener(state => {
+      console.log('[Offline] Network state changed:', state.isConnected);
+      setIsOffline(!state.isConnected);
+    });
+
     fetchData();
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
+
+  const loadFromCache = async () => {
+    try {
+      console.log('[Offline] Loading data from cache...');
+      const [cachedSessions, cachedSpeakers, cachedExhibitors, cachedSponsors, cachedRooms, cachedPorts, lastSync] = await Promise.all([
+        AsyncStorage.getItem(CACHE_KEYS.SESSIONS),
+        AsyncStorage.getItem(CACHE_KEYS.SPEAKERS),
+        AsyncStorage.getItem(CACHE_KEYS.EXHIBITORS),
+        AsyncStorage.getItem(CACHE_KEYS.SPONSORS),
+        AsyncStorage.getItem(CACHE_KEYS.ROOMS),
+        AsyncStorage.getItem(CACHE_KEYS.PORTS),
+        AsyncStorage.getItem(CACHE_KEYS.LAST_SYNC),
+      ]);
+
+      if (cachedSessions) setSessions(JSON.parse(cachedSessions));
+      if (cachedSpeakers) setSpeakers(JSON.parse(cachedSpeakers));
+      if (cachedExhibitors) setExhibitors(JSON.parse(cachedExhibitors));
+      if (cachedSponsors) setSponsors(JSON.parse(cachedSponsors));
+      if (cachedRooms) setRooms(JSON.parse(cachedRooms));
+      if (cachedPorts) setPorts(JSON.parse(cachedPorts));
+      if (lastSync) setLastSyncTime(new Date(lastSync));
+
+      console.log('[Offline] Data loaded from cache');
+      return true;
+    } catch (err) {
+      console.error('[Offline] Error loading from cache:', err);
+      return false;
+    }
+  };
+
+  const saveToCache = async (data: {
+    sessions: Session[];
+    speakers: Speaker[];
+    exhibitors: Exhibitor[];
+    sponsors: Sponsor[];
+    rooms: Room[];
+    ports: Port[];
+  }) => {
+    try {
+      console.log('[Offline] Saving data to cache...');
+      const now = new Date().toISOString();
+      await Promise.all([
+        AsyncStorage.setItem(CACHE_KEYS.SESSIONS, JSON.stringify(data.sessions)),
+        AsyncStorage.setItem(CACHE_KEYS.SPEAKERS, JSON.stringify(data.speakers)),
+        AsyncStorage.setItem(CACHE_KEYS.EXHIBITORS, JSON.stringify(data.exhibitors)),
+        AsyncStorage.setItem(CACHE_KEYS.SPONSORS, JSON.stringify(data.sponsors)),
+        AsyncStorage.setItem(CACHE_KEYS.ROOMS, JSON.stringify(data.rooms)),
+        AsyncStorage.setItem(CACHE_KEYS.PORTS, JSON.stringify(data.ports)),
+        AsyncStorage.setItem(CACHE_KEYS.LAST_SYNC, now),
+      ]);
+      setLastSyncTime(new Date(now));
+      console.log('[Offline] Data saved to cache successfully');
+    } catch (err) {
+      console.error('[Offline] Error saving to cache:', err);
+    }
+  };
+
+  const isCacheExpired = async (): Promise<boolean> => {
+    try {
+      const lastSync = await AsyncStorage.getItem(CACHE_KEYS.LAST_SYNC);
+      if (!lastSync) return true;
+      
+      const lastSyncTime = new Date(lastSync).getTime();
+      const now = Date.now();
+      const isExpired = (now - lastSyncTime) > CACHE_EXPIRY_MS;
+      
+      console.log('[Offline] Cache expired:', isExpired);
+      return isExpired;
+    } catch (err) {
+      console.error('[Offline] Error checking cache expiry:', err);
+      return true;
+    }
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching conference data from API...');
+      console.log('[ConferenceData] Fetching conference data...');
+      
+      // Check network connectivity
+      const netInfo = await NetInfo.fetch();
+      const isConnected = netInfo.isConnected;
+      
+      console.log('[ConferenceData] Network connected:', isConnected);
+      
+      // If offline, load from cache
+      if (!isConnected) {
+        console.log('[Offline] Device is offline, loading from cache');
+        setIsOffline(true);
+        const cacheLoaded = await loadFromCache();
+        
+        if (!cacheLoaded) {
+          // No cache available, use mock data
+          console.log('[Offline] No cache available, using mock data');
+          setSessions(getMockSessions());
+          setSpeakers(getMockSpeakers());
+          setExhibitors(getMockExhibitors());
+          setSponsors(getMockSponsors());
+          setPorts(getMockPorts());
+          setRooms(getMockRooms());
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      setIsOffline(false);
+      
+      // Check if cache is still valid
+      const cacheExpired = await isCacheExpired();
+      
+      if (!cacheExpired) {
+        console.log('[Offline] Cache is still valid, loading from cache');
+        await loadFromCache();
+        setLoading(false);
+        return;
+      }
       
       // Check if backend is configured
       if (!isBackendConfigured()) {
-        console.log('Backend not configured, using mock data');
+        console.log('[ConferenceData] Backend not configured, using mock data');
+        const mockData = {
+          sessions: getMockSessions(),
+          speakers: getMockSpeakers(),
+          exhibitors: getMockExhibitors(),
+          sponsors: getMockSponsors(),
+          rooms: getMockRooms(),
+          ports: getMockPorts(),
+        };
+        
+        setSessions(mockData.sessions);
+        setSpeakers(mockData.speakers);
+        setExhibitors(mockData.exhibitors);
+        setSponsors(mockData.sponsors);
+        setPorts(mockData.ports);
+        setRooms(mockData.rooms);
+        
+        // Save mock data to cache for offline access
+        await saveToCache(mockData);
+        
+        setLoading(false);
+        return;
+      }
+
+      // Fetch data from API endpoints
+      console.log('[ConferenceData] Fetching from API...');
+      const [sessionsData, speakersData, exhibitorsData, sponsorsData, portsData, roomsData] = await Promise.all([
+        apiGet<Session[]>('/api/sessions').catch(err => {
+          console.error('[ConferenceData] Error fetching sessions:', err);
+          return getMockSessions();
+        }),
+        apiGet<Speaker[]>('/api/speakers').catch(err => {
+          console.error('[ConferenceData] Error fetching speakers:', err);
+          return getMockSpeakers();
+        }),
+        apiGet<Exhibitor[]>('/api/exhibitors').catch(err => {
+          console.error('[ConferenceData] Error fetching exhibitors:', err);
+          return getMockExhibitors();
+        }),
+        apiGet<Sponsor[]>('/api/sponsors').catch(err => {
+          console.error('[ConferenceData] Error fetching sponsors:', err);
+          return getMockSponsors();
+        }),
+        apiGet<Port[]>('/api/ports').catch(err => {
+          console.error('[ConferenceData] Error fetching ports:', err);
+          return getMockPorts();
+        }),
+        apiGet<Room[]>('/api/rooms').catch(err => {
+          console.error('[ConferenceData] Error fetching rooms:', err);
+          return getMockRooms();
+        }),
+      ]);
+
+      console.log('[ConferenceData] Data fetched successfully');
+      console.log('[ConferenceData] Sessions:', sessionsData.length);
+      console.log('[ConferenceData] Speakers:', speakersData.length);
+      console.log('[ConferenceData] Exhibitors:', exhibitorsData.length);
+      console.log('[ConferenceData] Sponsors:', sponsorsData.length);
+      console.log('[ConferenceData] Ports:', portsData.length);
+      console.log('[ConferenceData] Rooms:', roomsData.length);
+      
+      // If API returns empty data, use mock data as fallback
+      const finalData = {
+        sessions: sessionsData.length > 0 ? sessionsData : getMockSessions(),
+        speakers: speakersData.length > 0 ? speakersData : getMockSpeakers(),
+        exhibitors: exhibitorsData.length > 0 ? exhibitorsData : getMockExhibitors(),
+        sponsors: sponsorsData.length > 0 ? sponsorsData : getMockSponsors(),
+        rooms: roomsData.length > 0 ? roomsData : getMockRooms(),
+        ports: portsData.length > 0 ? portsData : getMockPorts(),
+      };
+      
+      setSessions(finalData.sessions);
+      setSpeakers(finalData.speakers);
+      setExhibitors(finalData.exhibitors);
+      setSponsors(finalData.sponsors);
+      setPorts(finalData.ports);
+      setRooms(finalData.rooms);
+      
+      // Save to cache for offline access
+      await saveToCache(finalData);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('[ConferenceData] Error fetching conference data:', err);
+      setError('Failed to load conference data');
+      
+      // Try to load from cache as fallback
+      const cacheLoaded = await loadFromCache();
+      
+      if (!cacheLoaded) {
+        // Fallback to mock data on error
         setSessions(getMockSessions());
         setSpeakers(getMockSpeakers());
         setExhibitors(getMockExhibitors());
         setSponsors(getMockSponsors());
         setPorts(getMockPorts());
         setRooms(getMockRooms());
-        setLoading(false);
-        return;
       }
-
-      // Fetch data from API endpoints
-      const [sessionsData, speakersData, exhibitorsData, sponsorsData, portsData, roomsData] = await Promise.all([
-        apiGet<Session[]>('/api/sessions').catch(err => {
-          console.error('Error fetching sessions:', err);
-          return getMockSessions();
-        }),
-        apiGet<Speaker[]>('/api/speakers').catch(err => {
-          console.error('Error fetching speakers:', err);
-          return getMockSpeakers();
-        }),
-        apiGet<Exhibitor[]>('/api/exhibitors').catch(err => {
-          console.error('Error fetching exhibitors:', err);
-          return getMockExhibitors();
-        }),
-        apiGet<Sponsor[]>('/api/sponsors').catch(err => {
-          console.error('Error fetching sponsors:', err);
-          return getMockSponsors();
-        }),
-        apiGet<Port[]>('/api/ports').catch(err => {
-          console.error('Error fetching ports:', err);
-          return getMockPorts();
-        }),
-        apiGet<Room[]>('/api/rooms').catch(err => {
-          console.error('Error fetching rooms:', err);
-          return getMockRooms();
-        }),
-      ]);
-
-      console.log('Conference data fetched successfully');
-      console.log('Sessions:', sessionsData.length);
-      console.log('Speakers:', speakersData.length);
-      console.log('Exhibitors:', exhibitorsData.length);
-      console.log('Sponsors:', sponsorsData.length);
-      console.log('Ports:', portsData.length);
-      console.log('Rooms:', roomsData.length);
       
-      // If API returns empty data, use mock data as fallback
-      setSessions(sessionsData.length > 0 ? sessionsData : getMockSessions());
-      setSpeakers(speakersData.length > 0 ? speakersData : getMockSpeakers());
-      setExhibitors(exhibitorsData.length > 0 ? exhibitorsData : getMockExhibitors());
-      setSponsors(sponsorsData.length > 0 ? sponsorsData : getMockSponsors());
-      setPorts(portsData.length > 0 ? portsData : getMockPorts());
-      setRooms(roomsData.length > 0 ? roomsData : getMockRooms());
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching conference data:', err);
-      setError('Failed to load conference data');
-      // Fallback to mock data on error
-      setSessions(getMockSessions());
-      setSpeakers(getMockSpeakers());
-      setExhibitors(getMockExhibitors());
-      setSponsors(getMockSponsors());
-      setPorts(getMockPorts());
-      setRooms(getMockRooms());
       setLoading(false);
     }
   };
 
   const refetch = () => {
-    console.log('Refetching conference data...');
+    console.log('[ConferenceData] Refetching conference data...');
     fetchData();
   };
 
@@ -115,6 +288,8 @@ export function useConferenceData() {
     setSponsors,
     setPorts,
     setRooms,
+    isOffline,
+    lastSyncTime,
   };
 }
 
