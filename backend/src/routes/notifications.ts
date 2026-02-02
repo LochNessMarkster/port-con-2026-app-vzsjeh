@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray, gte } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 
@@ -275,6 +275,94 @@ export function register(app: App, fastify: FastifyInstance) {
         return { message: 'Notification deleted successfully' };
       } catch (error) {
         app.logger.error({ err: error, userId, notificationId: id }, 'Failed to delete notification');
+        throw error;
+      }
+    }
+  );
+
+  // GET /api/notifications/session-changes - Get recent session changes for user's bookmarked sessions
+  fastify.get(
+    '/api/notifications/session-changes',
+    {
+      schema: {
+        description: 'Get recent session changes for the current user bookmarked sessions',
+        tags: ['notifications'],
+        response: {
+          200: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                sessionId: { type: 'string' },
+                sessionTitle: { type: 'string' },
+                changeType: { type: 'string' },
+                oldValue: { type: ['string', 'null'] },
+                newValue: { type: ['string', 'null'] },
+                createdAt: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await app.requireAuth()(request, reply);
+      if (!session) return;
+
+      const userId = session.user.id;
+
+      app.logger.info({ userId }, 'Fetching session changes for bookmarked sessions');
+
+      try {
+        // Get user's bookmarked sessions
+        const bookmarks = await app.db.query.bookmarkedSessions.findMany({
+          where: eq(schema.bookmarkedSessions.userId, userId),
+        });
+
+        if (bookmarks.length === 0) {
+          return [];
+        }
+
+        const sessionIds = bookmarks.map((b) => b.sessionId);
+
+        // Get recent changes for those sessions (last 24 hours)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        const changes = await app.db.query.sessionChanges.findMany({
+          where: and(
+            inArray(schema.sessionChanges.sessionId, sessionIds),
+            gte(schema.sessionChanges.createdAt, oneDayAgo)
+          ),
+        });
+
+        // Get session titles for display
+        const sessionMap = new Map();
+        for (const change of changes) {
+          if (!sessionMap.has(change.sessionId)) {
+            const sess = await app.db.query.sessions.findFirst({
+              where: eq(schema.sessions.id, change.sessionId),
+            });
+            if (sess) {
+              sessionMap.set(change.sessionId, sess.title);
+            }
+          }
+        }
+
+        const result = changes.map((change) => ({
+          id: change.id,
+          sessionId: change.sessionId,
+          sessionTitle: sessionMap.get(change.sessionId) || 'Unknown Session',
+          changeType: change.changeType,
+          oldValue: change.oldValue,
+          newValue: change.newValue,
+          createdAt: change.createdAt.toISOString(),
+        }));
+
+        app.logger.info({ userId, count: result.length }, 'Session changes retrieved');
+        return result;
+      } catch (error) {
+        app.logger.error({ err: error, userId }, 'Failed to fetch session changes');
         throw error;
       }
     }

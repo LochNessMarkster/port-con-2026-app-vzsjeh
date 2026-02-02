@@ -11,6 +11,7 @@ import { register as registerSponsors } from './routes/sponsors.js';
 import { register as registerPorts } from './routes/ports.js';
 import { register as registerNotifications } from './routes/notifications.js';
 import { register as registerFavorites } from './routes/favorites.js';
+import { register as registerBookmarks } from './routes/bookmarks.js';
 import { registerAdminRoutes } from './routes/admin.js';
 
 // Combine schemas
@@ -35,6 +36,7 @@ registerSponsors(app, app.fastify);
 registerPorts(app, app.fastify);
 registerNotifications(app, app.fastify);
 registerFavorites(app, app.fastify);
+registerBookmarks(app, app.fastify);
 registerAdminRoutes(app);
 
 await app.run();

@@ -115,6 +115,30 @@ export const favoriteExhibitors = pgTable(
   })
 );
 
+// Session Changes table
+export const sessionChanges = pgTable('session_changes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  changeType: varchar('change_type', { length: 50 }).notNull(),
+  oldValue: text('old_value'),
+  newValue: text('new_value'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Bookmarked Sessions table (for users to bookmark sessions they want to attend)
+export const bookmarkedSessions = pgTable(
+  'bookmarked_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userSessionIdx: uniqueIndex('user_session_idx').on(table.userId, table.sessionId),
+  })
+);
+
 // Relations
 export const roomsRelations = relations(rooms, ({ many }) => ({
   sessions: many(sessions),

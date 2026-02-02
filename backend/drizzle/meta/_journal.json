@@ -36,6 +36,13 @@
       "when": 1769998609459,
       "tag": "20260202021649_cooing_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1769999353152,
+      "tag": "20260202022913_light_proteus",
+      "breakpoints": true
     }
   ]
 }

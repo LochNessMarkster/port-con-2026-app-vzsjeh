@@ -11,6 +11,8 @@ import {
   parseExhibitorRow,
   parseSessionRow,
 } from '../utils/csv-parser.js';
+import { detectSessionChanges, recordSessionChange } from '../utils/session-change-detector.js';
+import { sendPushNotificationsToMultiple } from '../utils/push-notifications.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
 const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
@@ -633,6 +635,16 @@ export function registerAdminRoutes(app: App) {
       app.logger.info({ sessionId: id }, 'Updating session');
 
       try {
+        // Get current session data
+        const currentSession = await app.db.query.sessions.findFirst({
+          where: eq(schema.sessions.id, id),
+        });
+
+        if (!currentSession) {
+          app.logger.warn({ sessionId: id }, 'Session not found');
+          return reply.status(404).send({ error: 'Session not found' });
+        }
+
         const updateData: any = {};
         if (body.title) updateData.title = body.title;
         if (body.description !== undefined) updateData.description = body.description;
@@ -641,6 +653,9 @@ export function registerAdminRoutes(app: App) {
         if (body.roomId !== undefined) updateData.roomId = body.roomId;
         if (body.type !== undefined) updateData.type = body.type;
         if (body.track !== undefined) updateData.track = body.track;
+
+        // Detect changes
+        const changes = await detectSessionChanges(app, id, currentSession, updateData);
 
         const updated = await app.db
           .update(schema.sessions)
@@ -651,6 +666,48 @@ export function registerAdminRoutes(app: App) {
         if (updated.length === 0) {
           app.logger.warn({ sessionId: id }, 'Session not found');
           return reply.status(404).send({ error: 'Session not found' });
+        }
+
+        // Record changes and send notifications if there are any
+        if (changes.length > 0) {
+          for (const change of changes) {
+            await recordSessionChange(app, id, change.changeType, change.oldValue || null, change.newValue || null);
+          }
+
+          // Get users who bookmarked this session
+          const bookmarks = await app.db.query.bookmarkedSessions.findMany({
+            where: eq(schema.bookmarkedSessions.sessionId, id),
+          });
+
+          if (bookmarks.length > 0) {
+            // Get push tokens for these users
+            const userIds = bookmarks.map((b) => b.userId);
+            const tokens: string[] = [];
+
+            for (const userId of userIds) {
+              const pushToken = await app.db.query.pushTokens.findFirst({
+                where: eq(schema.pushTokens.userId, userId),
+              });
+              if (pushToken) {
+                tokens.push(pushToken.token);
+              }
+            }
+
+            // Send notifications
+            if (tokens.length > 0) {
+              const changeDescriptions = changes.map((c) => c.description).join('\n');
+              const successCount = await sendPushNotificationsToMultiple(tokens, {
+                title: `Session Update: ${currentSession.title}`,
+                body: changeDescriptions,
+                data: { sessionId: id },
+              });
+
+              app.logger.info(
+                { sessionId: id, notificationsSent: successCount },
+                'Session change notifications sent'
+              );
+            }
+          }
         }
 
         app.logger.info({ sessionId: id }, 'Session updated successfully');
