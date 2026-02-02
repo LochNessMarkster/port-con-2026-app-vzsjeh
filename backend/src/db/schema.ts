@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, varchar, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, varchar, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Rooms table
@@ -100,6 +100,20 @@ export const scheduledNotifications = pgTable('scheduled_notifications', {
   sent: boolean('sent').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Favorite Exhibitors table
+export const favoriteExhibitors = pgTable(
+  'favorite_exhibitors',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    exhibitorId: uuid('exhibitor_id').notNull().references(() => exhibitors.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userExhibitorIdx: uniqueIndex('user_exhibitor_idx').on(table.userId, table.exhibitorId),
+  })
+);
 
 // Relations
 export const roomsRelations = relations(rooms, ({ many }) => ({
