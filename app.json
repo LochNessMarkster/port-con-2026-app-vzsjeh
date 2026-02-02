@@ -1,7 +1,8 @@
+
 {
   "expo": {
     "name": "PortCon 2026",
-    "slug": "PortCon 2026",
+    "slug": "portcon2026",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -36,7 +37,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "PortCon 2026",
+    "scheme": "portcon2026",
     "experiments": {
       "typedRoutes": true
     },
@@ -45,5 +46,5 @@
       "backendUrl": "https://te37stbznck3c3cff9eh662st246xndt.app.specular.dev"
     }
   },
-  "scheme": "PortCon 2026"
+  "scheme": "portcon2026"
 }
