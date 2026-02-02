@@ -135,36 +135,64 @@ export function register(app: App, fastify: FastifyInstance) {
           });
         }
 
-        // Use Better Auth to create user via sign-up
-        // Make internal request to the auth endpoint
-        const signUpResponse = await fetch('http://localhost:3000/api/auth/sign-up/email', {
+        // Use Better Auth API directly to create the admin user
+        // Call the auth endpoint through the fastify server
+        const signUpResponse = await fastify.inject({
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          url: '/api/auth/sign-up/email',
+          payload: {
             email: body.email,
             password: body.password,
             name: body.name,
-          }),
+          },
         });
 
-        if (!signUpResponse.ok) {
-          const error = await signUpResponse.json() as any;
+        if (signUpResponse.statusCode !== 200 && signUpResponse.statusCode !== 201) {
+          let errorMessage = 'Failed to create user';
+          try {
+            const errorData = JSON.parse(signUpResponse.body);
+            errorMessage = errorData?.message || errorData?.error || errorMessage;
+          } catch {
+            // Could not parse error response, use default message
+          }
+
           app.logger.error(
-            { email: body.email, status: signUpResponse.status, error },
-            'Failed to create admin user via auth endpoint'
+            { email: body.email, statusCode: signUpResponse.statusCode, body: signUpResponse.body },
+            'Failed to create admin user via Better Auth'
           );
 
           return reply.status(400).send({
-            error: error?.message || 'Failed to create user',
+            error: errorMessage,
           });
         }
 
-        const result = await signUpResponse.json() as any;
+        let result: any;
+        try {
+          result = JSON.parse(signUpResponse.body);
+        } catch {
+          app.logger.error(
+            { email: body.email, body: signUpResponse.body },
+            'Could not parse Better Auth response'
+          );
+
+          return reply.status(400).send({
+            error: 'Failed to parse auth response',
+          });
+        }
+
+        if (!result.user) {
+          app.logger.error(
+            { email: body.email, response: result },
+            'Better Auth did not return user after signup'
+          );
+
+          return reply.status(400).send({
+            error: 'Failed to create user: no user returned',
+          });
+        }
 
         app.logger.info(
-          { userId: result?.user?.id, email: body.email },
+          { userId: result.user.id, email: body.email },
           'First admin user created successfully'
         );
 
@@ -172,9 +200,9 @@ export function register(app: App, fastify: FastifyInstance) {
           success: true,
           message: 'Admin user created successfully',
           user: {
-            id: result?.user?.id,
-            email: result?.user?.email,
-            name: result?.user?.name,
+            id: result.user.id,
+            email: result.user.email,
+            name: result.user.name,
           },
         });
       } catch (error) {
