@@ -171,11 +171,34 @@ function GoogleSheetsSyncContent() {
             <Text style={styles.infoText}>
               1. Create a Google Sheet with your exhibitors or schedule data{'\n'}
               2. Make the sheet publicly viewable (Share → Anyone with the link can view){'\n'}
-              3. Copy the spreadsheet URL or ID{'\n'}
-              4. Paste it below and click Preview to validate{'\n'}
-              5. Click Sync to import the data
+              3. Ensure your first row contains column headers{'\n'}
+              4. Copy the spreadsheet URL or ID{'\n'}
+              5. Paste it below and click Preview to validate{'\n'}
+              6. Click Sync to import the data{'\n'}
+              {'\n'}
+              <Text style={{ fontWeight: '600' }}>✨ Flexible Format Support:</Text>{'\n'}
+              The system automatically detects and supports multiple column naming conventions. You can use "Description" or "Session Description", "Room" or "Room Name", combine speakers as "Speaker Names" or use "Speaker's First" + "Speaker's Last", and more. See "Expected Column Format" below for all supported variations.
             </Text>
           </View>
+        </View>
+
+        <View style={styles.quickLinksCard}>
+          <Text style={styles.quickLinksTitle}>Quick Links (Your Spreadsheets)</Text>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => setSpreadsheetId('1CAxtxLpiyvQy38KbeHlpO-7g5V5ySrBuepO8ehtwdyU')}
+          >
+            <IconSymbol
+              ios_icon_name="calendar"
+              android_material_icon_name="calendar-today"
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.quickLinkText}>Sessions Spreadsheet</Text>
+          </TouchableOpacity>
+          <Text style={styles.quickLinkHint}>
+            Click to auto-fill the Sessions spreadsheet ID. Then select "Schedule" type and click Sync.
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -373,16 +396,35 @@ function GoogleSheetsSyncContent() {
                 • Map Y (number)
               </Text>
             ) : (
-              <Text style={styles.formatText}>
-                • Title (required){'\n'}
-                • Description{'\n'}
-                • Start Time (ISO 8601 format, e.g., 2026-03-24T10:00:00Z){'\n'}
-                • End Time (ISO 8601 format){'\n'}
-                • Room Name{'\n'}
-                • Type (e.g., Keynote, Panel, Workshop){'\n'}
-                • Track{'\n'}
-                • Speaker Names (comma-separated)
-              </Text>
+              <View>
+                <Text style={styles.formatText}>
+                  The system supports BOTH column formats:{'\n\n'}
+                  <Text style={{ fontWeight: '600' }}>Required columns:</Text>{'\n'}
+                  • Title (required){'\n'}
+                  • Start Time (required){'\n\n'}
+                  <Text style={{ fontWeight: '600' }}>Optional columns (flexible naming):</Text>{'\n'}
+                  • Date (if present, combines with Start Time){'\n'}
+                  • End Time (defaults to 1 hour after start if missing){'\n'}
+                  • Room OR Room Name{'\n'}
+                  • Type/Track (combined) OR separate Type and Track columns{'\n'}
+                  • Description OR Session Description{'\n'}
+                  • Speaker Names (comma-separated) OR Speaker's First + Speaker's Last{'\n\n'}
+                  <Text style={{ fontWeight: '600' }}>Time format examples:</Text>{'\n'}
+                  • "10:00 AM" (with Date column){'\n'}
+                  • "2026-03-24T10:00:00Z" (ISO 8601){'\n'}
+                  • "14:30" (24-hour format with Date column)
+                </Text>
+                <Text style={[styles.formatText, { marginTop: 12, fontWeight: '600' }]}>
+                  Supported Format Examples:{'\n'}
+                </Text>
+                <Text style={styles.formatText}>
+                  <Text style={{ fontWeight: '600' }}>Format 1 (Original):</Text>{'\n'}
+                  Title, Description, Start Time, End Time, Room Name, Type, Track, Speaker Names{'\n\n'}
+                  <Text style={{ fontWeight: '600' }}>Format 2 (New - Your Spreadsheet):</Text>{'\n'}
+                  Title, Date, Start Time, Room, Type/Track, Session Description, Speaker's First, Speaker's Last{'\n\n'}
+                  Both formats work seamlessly! The system automatically detects which columns are present.
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -458,6 +500,44 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#1E40AF',
     lineHeight: 20,
+  },
+  quickLinksCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  quickLinksTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534',
+    marginBottom: 12,
+  },
+  quickLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    marginBottom: 8,
+  },
+  quickLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  quickLinkHint: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#166534',
+    opacity: 0.8,
+    marginTop: 4,
   },
   section: {
     marginBottom: 32,

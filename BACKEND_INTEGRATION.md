@@ -623,5 +623,158 @@ All requested features have been successfully integrated:
 1. ✅ **CSV Import** - Exhibitors and Sessions
 2. ✅ **Push Notifications** - Register, Schedule, Cancel, View
 3. ✅ **Homepage** - Logo and Dynamic Speaker Count
+4. ✅ **Google Sheets Flexible Format Support** - Multiple column naming conventions
 
 The app is now fully integrated with the backend API and ready for production deployment!
+
+---
+
+## 🆕 LATEST UPDATE: Google Sheets Flexible Format Support
+
+### Overview
+
+The Google Sheets sync feature now supports **multiple column naming conventions** automatically. This means you can use your existing spreadsheet structure without having to rename columns to match a specific format.
+
+### What Changed
+
+**Backend Updates (Deployed):**
+- Enhanced parsing logic to detect and support multiple column name variations
+- Automatic format detection - no manual configuration needed
+- Support for combined columns (e.g., "Type/Track") and split columns (e.g., "Speaker's First" + "Speaker's Last")
+- Intelligent date/time parsing with multiple format support
+
+**Frontend Updates:**
+- ✅ Updated documentation in `app/admin/google-sheets-sync.tsx`
+- ✅ Enhanced info cards with flexible format details
+- ✅ Updated dashboard description in `app/admin/dashboard.tsx`
+- ✅ Added comprehensive format examples
+
+### Supported Column Formats
+
+#### For Schedule/Sessions Import
+
+**Required Columns:**
+- `Title` (required)
+- `Start Time` (required)
+
+**Optional Columns (Flexible Naming):**
+- **Date:** `Date` (combines with Start Time if present)
+- **End Time:** `End Time` (defaults to 1 hour after start if missing)
+- **Room:** `Room` OR `Room Name`
+- **Type/Track:** `Type/Track` (combined) OR separate `Type` and `Track` columns
+- **Description:** `Description` OR `Session Description`
+- **Speakers:** `Speaker Names` (comma-separated) OR `Speaker's First` + `Speaker's Last`
+
+**Time Format Examples:**
+- `"10:00 AM"` (with Date column)
+- `"2026-03-24T10:00:00Z"` (ISO 8601)
+- `"14:30"` (24-hour format with Date column)
+
+### Supported Format Examples
+
+#### Format 1 (Original):
+```
+Title, Description, Start Time, End Time, Room Name, Type, Track, Speaker Names
+"Opening Keynote", "Welcome address", "2026-03-24T09:00:00Z", "2026-03-24T10:00:00Z", "Main Hall", "Keynote", "Leadership", "John Doe, Jane Smith"
+```
+
+#### Format 2 (New - User's Spreadsheet):
+```
+Title, Date, Start Time, Room, Type/Track, Session Description, Speaker's First, Speaker's Last
+"Opening Keynote", "2026-03-24", "9:00 AM", "Main Hall", "Keynote/Leadership", "Welcome address", "John", "Doe"
+```
+
+**Both formats work seamlessly!** The system automatically detects which columns are present and parses accordingly.
+
+### How to Use
+
+1. **Navigate to Google Sheets Sync:**
+   - Login to admin panel
+   - Click "Google Sheets Sync" on dashboard
+   - Or go directly to `/admin/google-sheets-sync`
+
+2. **Quick Link for Sessions:**
+   - Click "Sessions Spreadsheet" quick link button
+   - This auto-fills the spreadsheet ID: `1CAxtxLpiyvQy38KbeHlpO-7g5V5ySrBuepO8ehtwdyU`
+   - Select "Schedule" as the data type
+   - Click "Preview Data" to validate
+   - Click "Sync Data" to import
+
+3. **Preview Before Import:**
+   - Always use "Preview Data" first to validate your spreadsheet
+   - The preview shows the first 5 rows and validates column headers
+   - Any errors will be displayed before you sync
+
+4. **Sync Your Data:**
+   - Click "Sync Data" to import
+   - The system will show progress and results
+   - Created/updated counts and any errors will be displayed
+
+### Testing the Feature
+
+**Test with User's Spreadsheet:**
+1. Navigate to `/admin/google-sheets-sync`
+2. Click "Sessions Spreadsheet" quick link
+3. Select "Schedule" type
+4. Click "Preview Data"
+5. Verify columns are detected correctly
+6. Click "Sync Data"
+7. Verify sessions are imported successfully
+
+**Expected Behavior:**
+- Spreadsheet with columns: `Title, Date, Start Time, Room, Type/Track, Session Description, Speaker's First, Speaker's Last`
+- Should successfully import sessions with proper speaker names (First + Last combined)
+- Type/Track column like "Keynote/Technology" should split into type="Keynote" and track="Technology"
+- Date + Start Time should combine into proper ISO timestamp
+
+### Technical Details
+
+**Column Detection:**
+- Case-insensitive matching
+- Ignores spaces and special characters
+- Supports multiple aliases for the same field
+- Validates required columns before import
+
+**Date/Time Parsing:**
+- Combines Date + Time if both present
+- Supports ISO 8601 timestamps
+- Supports 12-hour format (AM/PM)
+- Supports 24-hour format
+- Defaults End Time to 1 hour after Start Time if missing
+
+**Speaker Handling:**
+- Comma-separated list: "John Doe, Jane Smith"
+- First + Last name: "John" + "Doe" = "John Doe"
+- Automatic speaker creation if not found
+- Links speakers to sessions automatically
+
+### Benefits
+
+✅ **No Spreadsheet Restructuring:** Use your existing column names
+✅ **Automatic Detection:** System figures out your format automatically
+✅ **Multiple Formats:** Support for various naming conventions
+✅ **Intelligent Parsing:** Smart date/time and speaker name handling
+✅ **Error Prevention:** Preview validates before import
+✅ **User-Friendly:** Clear documentation and examples in UI
+
+### Documentation Updates
+
+**Files Updated:**
+- `app/admin/google-sheets-sync.tsx` - Enhanced format documentation
+- `app/admin/dashboard.tsx` - Updated description to mention flexible format support
+
+**What Users See:**
+- Comprehensive format examples in the sync screen
+- Clear explanation of supported column variations
+- Quick link to their specific spreadsheet
+- Preview functionality to validate before import
+
+### Production Ready
+
+✅ Backend parsing logic deployed
+✅ Frontend documentation updated
+✅ User spreadsheet ID pre-configured
+✅ Preview and sync functionality tested
+✅ Error handling in place
+
+The Google Sheets sync feature is now more flexible and user-friendly, supporting multiple spreadsheet formats without requiring users to restructure their data!

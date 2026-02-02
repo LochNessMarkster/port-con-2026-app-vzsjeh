@@ -322,6 +322,12 @@ export default function ScheduleScreen() {
 
                 <Text style={styles.sessionTitle}>{session.title}</Text>
 
+                {session.description && (
+                  <Text style={styles.sessionDescription} numberOfLines={2}>
+                    {session.description}
+                  </Text>
+                )}
+
                 {session.speakers.length > 0 && (
                   <View style={styles.speakersContainer}>
                     <IconSymbol
@@ -571,8 +577,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 24,
+  },
+  sessionDescription: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   speakersContainer: {
     flexDirection: 'row',

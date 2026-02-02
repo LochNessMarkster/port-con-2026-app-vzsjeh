@@ -207,7 +207,7 @@ function DashboardContent() {
               />
               <Text style={styles.airtableTitle}>Google Sheets Sync</Text>
               <Text style={styles.airtableDescription}>
-                Import exhibitors and schedule data directly from Google Sheets.
+                Import exhibitors and schedule data directly from Google Sheets. Supports multiple column formats automatically - use your existing spreadsheet structure!
               </Text>
               <View style={styles.airtableButtons}>
                 <TouchableOpacity
