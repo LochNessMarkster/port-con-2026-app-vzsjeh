@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, varchar, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Rooms table
@@ -79,6 +79,26 @@ export const ports = pgTable('ports', {
   logo: text('logo'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Push Tokens table
+export const pushTokens = pgTable('push_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().unique(),
+  token: text('token').notNull(),
+  platform: varchar('platform', { length: 50 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Scheduled Notifications table
+export const scheduledNotifications = pgTable('scheduled_notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  scheduledFor: timestamp('scheduled_for').notNull(),
+  sent: boolean('sent').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Relations

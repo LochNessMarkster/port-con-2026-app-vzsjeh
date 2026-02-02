@@ -9,6 +9,7 @@ import { register as registerRooms } from './routes/rooms.js';
 import { register as registerExhibitors } from './routes/exhibitors.js';
 import { register as registerSponsors } from './routes/sponsors.js';
 import { register as registerPorts } from './routes/ports.js';
+import { register as registerNotifications } from './routes/notifications.js';
 import { registerAdminRoutes } from './routes/admin.js';
 
 // Combine schemas
@@ -31,6 +32,7 @@ registerRooms(app, app.fastify);
 registerExhibitors(app, app.fastify);
 registerSponsors(app, app.fastify);
 registerPorts(app, app.fastify);
+registerNotifications(app, app.fastify);
 registerAdminRoutes(app);
 
 await app.run();

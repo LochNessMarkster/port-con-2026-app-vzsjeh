@@ -4,6 +4,13 @@ import Airtable from 'airtable';
 import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 import { scrapeSchedule } from '../utils/schedule-scraper.js';
+import {
+  parseCSV,
+  validateExhibitorRow,
+  validateSessionRow,
+  parseExhibitorRow,
+  parseSessionRow,
+} from '../utils/csv-parser.js';
 
 const AIRTABLE_BASE_ID = 'appkKjciinTlnsbkd';
 const AIRTABLE_SPEAKERS_TABLE_ID = 'tblNp1JZk4ARZZZlT';
@@ -1418,6 +1425,251 @@ export function registerAdminRoutes(app: App) {
       } catch (error) {
         app.logger.error({ err: error, portId: id }, 'Failed to delete port');
         throw error;
+      }
+    }
+  );
+
+  // POST /api/admin/exhibitors/import-csv - Import exhibitors from CSV
+  app.fastify.post(
+    '/api/admin/exhibitors/import-csv',
+    {
+      schema: {
+        description: 'Import exhibitors from CSV file',
+        tags: ['admin'],
+        consumes: ['multipart/form-data'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              created: { type: 'integer' },
+              updated: { type: 'integer' },
+              errors: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info('Starting exhibitor CSV import');
+
+      try {
+        const data = await request.file();
+
+        if (!data) {
+          return reply.status(400).send({ error: 'No file provided' });
+        }
+
+        const csv = await data.toBuffer();
+        const csvContent = csv.toString('utf-8');
+        const rows = parseCSV(csvContent);
+
+        let created = 0;
+        let updated = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const validation = validateExhibitorRow(row, i + 2);
+
+          if (!validation.valid) {
+            errors.push(validation.error || '');
+            continue;
+          }
+
+          try {
+            const parsed = parseExhibitorRow(row);
+
+            // Check if exhibitor exists by name
+            const existing = await app.db.query.exhibitors.findFirst({
+              where: eq(schema.exhibitors.name, parsed.name),
+            });
+
+            if (existing) {
+              await app.db
+                .update(schema.exhibitors)
+                .set(parsed)
+                .where(eq(schema.exhibitors.id, existing.id));
+              updated++;
+              app.logger.debug({ name: parsed.name }, 'Exhibitor updated');
+            } else {
+              await app.db.insert(schema.exhibitors).values(parsed);
+              created++;
+              app.logger.debug({ name: parsed.name }, 'Exhibitor created');
+            }
+          } catch (error) {
+            errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            app.logger.warn(
+              { error, row: i + 2 },
+              'Failed to process exhibitor row'
+            );
+          }
+        }
+
+        app.logger.info(
+          { created, updated, errors: errors.length },
+          'Exhibitor CSV import completed'
+        );
+
+        return {
+          created,
+          updated,
+          errors,
+        };
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to import exhibitors from CSV');
+        return reply.status(400).send({
+          error: `CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+    }
+  );
+
+  // POST /api/admin/sessions/import-csv - Import sessions from CSV
+  app.fastify.post(
+    '/api/admin/sessions/import-csv',
+    {
+      schema: {
+        description: 'Import sessions from CSV file',
+        tags: ['admin'],
+        consumes: ['multipart/form-data'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              created: { type: 'integer' },
+              updated: { type: 'integer' },
+              errors: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const session = await requireAuth(request, reply);
+      if (!session) return;
+
+      app.logger.info('Starting session CSV import');
+
+      try {
+        const data = await request.file();
+
+        if (!data) {
+          return reply.status(400).send({ error: 'No file provided' });
+        }
+
+        const csv = await data.toBuffer();
+        const csvContent = csv.toString('utf-8');
+        const rows = parseCSV(csvContent);
+
+        let created = 0;
+        let updated = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const validation = validateSessionRow(row, i + 2);
+
+          if (!validation.valid) {
+            errors.push(validation.error || '');
+            continue;
+          }
+
+          try {
+            const parsed = parseSessionRow(row);
+
+            // Find or create room if roomName provided
+            let roomId: string | null = null;
+            if (parsed.roomName) {
+              let room = await app.db.query.rooms.findFirst({
+                where: eq(schema.rooms.name, parsed.roomName),
+              });
+
+              if (!room) {
+                const newRoom = await app.db
+                  .insert(schema.rooms)
+                  .values({
+                    name: parsed.roomName,
+                    location: parsed.roomName,
+                    capacity: 100,
+                  })
+                  .returning();
+                room = newRoom[0];
+              }
+              roomId = room.id;
+            }
+
+            // Check if session exists by title and startTime
+            const existing = await app.db.query.sessions.findFirst({
+              where: eq(schema.sessions.title, parsed.title),
+            });
+
+            const sessionData = {
+              title: parsed.title,
+              description: parsed.description || null,
+              startTime: new Date(parsed.startTime),
+              endTime: new Date(parsed.endTime),
+              roomId,
+              type: parsed.type || null,
+              track: parsed.track || null,
+            };
+
+            if (existing) {
+              await app.db
+                .update(schema.sessions)
+                .set(sessionData)
+                .where(eq(schema.sessions.id, existing.id));
+              updated++;
+              app.logger.debug({ title: parsed.title }, 'Session updated');
+            } else {
+              await app.db.insert(schema.sessions).values(sessionData);
+              created++;
+              app.logger.debug({ title: parsed.title }, 'Session created');
+            }
+          } catch (error) {
+            errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            app.logger.warn(
+              { error, row: i + 2 },
+              'Failed to process session row'
+            );
+          }
+        }
+
+        app.logger.info(
+          { created, updated, errors: errors.length },
+          'Session CSV import completed'
+        );
+
+        return {
+          created,
+          updated,
+          errors,
+        };
+      } catch (error) {
+        app.logger.error({ err: error }, 'Failed to import sessions from CSV');
+        return reply.status(400).send({
+          error: `CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
       }
     }
   );
