@@ -14,6 +14,7 @@ import { register as registerFavorites } from './routes/favorites.js';
 import { register as registerBookmarks } from './routes/bookmarks.js';
 import { register as registerAdminSetup } from './routes/admin-setup.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerAuthDebug } from './routes/auth-debug.js';
 
 // Combine schemas
 const schema = { ...appSchema, ...authSchema };
@@ -26,6 +27,57 @@ export type App = typeof app;
 
 // Enable authentication
 app.withAuth();
+
+// Add logging hooks for authentication flow debugging
+app.fastify.addHook('onRequest', async (request, reply) => {
+  const isAuthEndpoint = request.url.startsWith('/api/auth/');
+
+  if (isAuthEndpoint) {
+    const { method, url } = request;
+    const body = method !== 'GET' ? (request.body as any) : null;
+
+    app.logger.info(
+      {
+        method,
+        path: url,
+        email: body?.email,
+        body: method === 'POST' && url.includes('/sign-in') ? { email: body?.email } : undefined,
+      },
+      'Authentication request received'
+    );
+  }
+});
+
+app.fastify.addHook('onResponse', async (request, reply) => {
+  const isAuthEndpoint = request.url.startsWith('/api/auth/');
+
+  if (isAuthEndpoint) {
+    const { method, url } = request;
+    const statusCode = reply.statusCode;
+    const body = method !== 'GET' ? (request.body as any) : null;
+
+    app.logger.info(
+      {
+        method,
+        path: url,
+        statusCode,
+        email: body?.email,
+      },
+      'Authentication response sent'
+    );
+
+    // Log session-related endpoints more verbosely
+    if (url.includes('/get-session')) {
+      app.logger.debug(
+        {
+          statusCode,
+          hasSession: statusCode === 200,
+        },
+        'Session retrieval response'
+      );
+    }
+  }
+});
 
 // Register routes - add your route modules here
 // IMPORTANT: Always use registration functions to avoid circular dependency issues
@@ -40,6 +92,7 @@ registerFavorites(app, app.fastify);
 registerBookmarks(app, app.fastify);
 registerAdminSetup(app, app.fastify);
 registerAdminRoutes(app);
+registerAuthDebug(app, app.fastify);
 
 await app.run();
 app.logger.info('Application running');
