@@ -285,6 +285,7 @@ export function register(app: App, fastify: FastifyInstance) {
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const email = 'momalley@marinelink.com';
+      const password = 'Maritime118$';
       const name = 'Admin User';
 
       app.logger.info({ email }, 'Attempting to bootstrap first admin user');
@@ -303,12 +304,9 @@ export function register(app: App, fastify: FastifyInstance) {
           });
         }
 
-        // Generate a secure random password (12+ chars with letters, numbers, symbols)
-        const password = generateSecurePassword();
-
         app.logger.info(
-          { email, passwordLength: password.length },
-          'Generated secure password for bootstrap'
+          { email },
+          'Using exact credentials for bootstrap admin user'
         );
 
         // Use Better Auth API to create the admin user
