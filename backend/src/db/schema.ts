@@ -21,6 +21,7 @@ export const speakers = pgTable('speakers', {
   photo: text('photo'),
   speakingTopic: text('speaking_topic'),
   synopsis: text('synopsis'),
+  isMasterOfCeremony: boolean('is_master_of_ceremony').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

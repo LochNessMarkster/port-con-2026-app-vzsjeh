@@ -1,0 +1,1 @@
+ALTER TABLE "speakers" ADD COLUMN "is_master_of_ceremony" boolean DEFAULT false NOT NULL;

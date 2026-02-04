@@ -101,6 +101,7 @@ export function registerAdminRoutes(app: App) {
             photo: fields.Photo?.[0]?.url || null,
             speakingTopic: fields['Speaking Topic'] || null,
             synopsis: fields['Synopsis of speaking topic'] || null,
+            isMasterOfCeremony: fields['Master of Ceremony'] === true,
           };
 
           if (existingSpeaker) {

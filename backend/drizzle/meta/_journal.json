@@ -43,6 +43,13 @@
       "when": 1769999353152,
       "tag": "20260202022913_light_proteus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770225196878,
+      "tag": "20260204171316_amazing_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

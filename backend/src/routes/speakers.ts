@@ -30,6 +30,7 @@ export function register(app: App, fastify: FastifyInstance) {
                 photo: { type: 'string' },
                 speakingTopic: { type: 'string' },
                 synopsis: { type: 'string' },
+                isMasterOfCeremony: { type: 'boolean' },
               },
             },
           },
@@ -70,6 +71,7 @@ export function register(app: App, fastify: FastifyInstance) {
                 photo: { type: ['string', 'null'] },
                 speakingTopic: { type: ['string', 'null'] },
                 synopsis: { type: ['string', 'null'] },
+                isMasterOfCeremony: { type: 'boolean' },
               },
             },
           },
@@ -134,6 +136,7 @@ export function register(app: App, fastify: FastifyInstance) {
           const synopsis = fields['Synopsis of speaking topic'] || null;
           const bio = fields.Bio || null;
           const photoUrl = fields.Photo?.[0]?.url || null;
+          const isMasterOfCeremony = fields['Master of Ceremony'] === true;
 
           // Log first few records to show what fields are being extracted
           if (index < 2) {
@@ -147,6 +150,7 @@ export function register(app: App, fastify: FastifyInstance) {
                   synopsis,
                   bio,
                   photoUrl,
+                  isMasterOfCeremony,
                 },
               },
               `Extracted speaker data for record ${index + 1}`
@@ -162,6 +166,7 @@ export function register(app: App, fastify: FastifyInstance) {
             photo: photoUrl,
             speakingTopic,
             synopsis,
+            isMasterOfCeremony,
           };
         });
 
@@ -203,6 +208,7 @@ export function register(app: App, fastify: FastifyInstance) {
               photo: { type: 'string' },
               speakingTopic: { type: 'string' },
               synopsis: { type: 'string' },
+              isMasterOfCeremony: { type: 'boolean' },
               sessions: { type: 'array' },
             },
           },
